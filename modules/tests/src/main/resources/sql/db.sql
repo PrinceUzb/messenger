@@ -1,0 +1,16 @@
+CREATE TABLE "users" (
+  "id" UUID PRIMARY KEY,
+  "email" VARCHAR NOT NULL,
+  "nickname" VARCHAR NOT NULL,
+  "created_at" TIMESTAMP NOT NULL,
+  "password_hash" VARCHAR NOT NULL,
+  unique (email)
+);
+
+CREATE TABLE IF NOT EXISTS "messages" (
+  "id" UUID PRIMARY KEY,
+  "to" UUID CONSTRAINT fk_user_id REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE,
+  "from" UUID CONSTRAINT fk_user_id REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE,
+  "text" VARCHAR NOT NULL "created_at" TIMESTAMP NOT NULL,
+  "is_deleted" BOOLEAN NOT NULL DEFAULT FALSE,
+);
