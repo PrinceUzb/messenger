@@ -24,14 +24,14 @@ object FakeData {
   def user(email: EmailAddress = randomEmail): User =
     User(
       id = UUID.randomUUID(),
-      fullName = FullName.unsafeFrom("John Dao"),
+      nickname = Nickname.unsafeFrom("Nickname"),
       email = EmailAddress.unsafeFrom(email),
       createdAt = LocalDateTime.now
     )
 
   def userData: UserData =
     UserData(
-      fullName = FullName.unsafeFrom("John Dao"),
+      nickname = Nickname.unsafeFrom("Nickname"),
       email = randomEmail,
       password = Password.unsafeFrom("Secret1!")
     )

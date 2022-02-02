@@ -15,14 +15,14 @@ object UserSql {
     case id ~ fullName ~ email ~ createdAt ~ _ =>
       User(
         id = id,
-        fullName = FullName.unsafeFrom(fullName),
+        nickname = Nickname.unsafeFrom(fullName),
         createdAt = createdAt,
         email = EmailAddress.unsafeFrom(email)
       )
   }
 
   val enc: Encoder[UUID ~ UserData] = (uuid ~ varchar ~ varchar ~ timestamp ~ varchar).contramap { case id ~ u =>
-    id ~ u.fullName.value ~ u.email.value ~ LocalDateTime.now() ~ u.password.toHashUnsafe
+    id ~ u.nickname.value ~ u.email.value ~ LocalDateTime.now() ~ u.password.toHashUnsafe
   }
 
   val insert: Query[UUID ~ UserData, User] =

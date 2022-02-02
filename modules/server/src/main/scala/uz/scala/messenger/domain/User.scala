@@ -1,6 +1,6 @@
 package uz.scala.messenger.domain
 
-import uz.scala.messenger.domain.custom.refinements.{EmailAddress, FullName}
+import uz.scala.messenger.domain.custom.refinements.{EmailAddress, Nickname}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder}
 import io.circe.refined._
@@ -10,7 +10,7 @@ import java.util.UUID
 
 case class User(
   id: UUID,
-  fullName: FullName,
+  nickname: Nickname,
   email: EmailAddress,
   createdAt: LocalDateTime
 )
