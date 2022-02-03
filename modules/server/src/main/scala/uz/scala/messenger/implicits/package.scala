@@ -7,6 +7,9 @@ import uz.scala.messenger.domain.custom.refinements.Password
 import uz.scala.messenger.domain.custom.utils.MapConvert
 import uz.scala.messenger.domain.custom.utils.MapConvert.ValidationResult
 import eu.timepit.refined.auto.autoUnwrap
+import io.circe.parser.decode
+import io.circe.syntax.EncoderOps
+import io.circe.{Decoder, Encoder, Printer}
 import org.http4s.MediaType
 import org.http4s.headers.`Content-Type`
 import org.http4s.multipart.Part
@@ -15,7 +18,7 @@ import tsec.passwordhashers.jca.SCrypt
 
 package object implicits {
 
-  implicit class PasswordOps(val password: Password) {
+  implicit class PasswordOps(password: Password) {
     def toHash[F[_]: Sync]: F[PasswordHash[SCrypt]] = SCrypt.hashpw[F](password)
 
     def toHashUnsafe: PasswordHash[SCrypt] = SCrypt.hashpwUnsafe(password)
@@ -46,6 +49,16 @@ package object implicits {
           success => success.pure[F]
         )
       } yield validEntity
+  }
+
+  implicit class CirceEncoderOps[T: Encoder](obj: T) {
+    val printer: Printer = Printer.noSpaces.copy(dropNullValues = true)
+
+    def toJson: String = obj.asJson.printWith(printer)
+  }
+
+  implicit class CirceDecoderOps[T: Decoder](s: String) {
+    def as: T = decode[T](s).fold(throw _, json => json)
   }
 
   implicit class OptionIdOps[A](a: A) {

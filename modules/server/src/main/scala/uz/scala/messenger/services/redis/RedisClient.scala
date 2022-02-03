@@ -4,7 +4,6 @@ import cats.data.OptionT
 import cats.effect.{Async, Sync}
 import cats.implicits.toFunctorOps
 import uz.scala.messenger.config.RedisConfig
-import uz.scala.messenger.utils.JsonUtils.{fromJson, toJsonString}
 import dev.profunktor.redis4cats.Redis
 import dev.profunktor.redis4cats.effect.Log.Stdout._
 import dev.profunktor.redis4cats.effects.{SetArg, SetArgs}

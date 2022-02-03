@@ -33,6 +33,7 @@ object MessengerServer {
       .withExecutionContext(global)
       .bindHttp(conf.port, conf.host)
       .withHttpApp(httpApp)
+      .withHttpWebSocketApp(httpApp)
       .serve
       .compile
       .drain

@@ -1,6 +1,8 @@
 package uz.scala.messenger.domain
 
 import eu.timepit.refined.types.string.NonEmptyString
+import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 
 import java.util.UUID
 
@@ -10,3 +12,8 @@ case class Message(
   from: UUID,
   text: NonEmptyString
 )
+
+object Message {
+  implicit val dec: Decoder[Message] = deriveDecoder
+  implicit val enc: Encoder[Message] = deriveEncoder
+}

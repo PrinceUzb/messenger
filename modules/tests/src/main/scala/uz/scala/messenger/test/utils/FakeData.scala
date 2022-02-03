@@ -17,9 +17,9 @@ object FakeData {
 
   def credentials(isCorrect: Boolean): Credentials =
     if (isCorrect)
-      Credentials(EmailAddress.unsafeFrom("test@test.test") , Password.unsafeFrom("Secret1!"))
+      Credentials(EmailAddress.unsafeFrom("test@test.test"), Password.unsafeFrom("Secret1!"))
     else
-      Credentials(EmailAddress.unsafeFrom(FakeData.randomEmail) , Password.unsafeFrom("Secret1!"))
+      Credentials(EmailAddress.unsafeFrom(FakeData.randomEmail), Password.unsafeFrom("Secret1!"))
 
   def user(email: EmailAddress = randomEmail): User =
     User(
