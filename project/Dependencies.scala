@@ -67,10 +67,9 @@ object Dependencies {
     val logback  = "ch.qos.logback" % "logback-classic" % Versions.logback
 
     // Test
-    val scalaCheck = "org.scalacheck" %% "scalacheck" % Versions.scalaCheck
-    val scalaTest  = "org.scalatest"  %% "scalatest"  % Versions.scalaTest
+    val scalaCheck    = "org.scalacheck"    %% "scalacheck"      % Versions.scalaCheck
+    val scalaTest     = "org.scalatest"     %% "scalatest"       % Versions.scalaTest
     val scalaTestPlus = "org.scalatestplus" %% "scalacheck-1-15" % Versions.scalaTestPlus
-
 
     val webjars: Seq[ModuleID] = Seq(
       "org.webjars" % "bootstrap"    % Versions.bootstrap,
@@ -88,12 +87,13 @@ object Dependencies {
 
   val logLibs = Seq(log4cats, logback)
 
-  val coreLibraries: Seq[ModuleID] = catsLibs ++ cirisLibs ++ circeLibs ++ http4sLibs ++ logLibs ++ webjars ++ Seq(
+  val commonPart: Seq[ModuleID] = catsLibs ++ circeLibs :+ refinedType
+
+  val coreLibraries: Seq[ModuleID] = commonPart ++ cirisLibs ++ http4sLibs ++ logLibs ++ webjars ++ Seq(
     skunkCore,
     skunkCirce,
     skunkRefined,
     fs2,
-    refinedType,
     tsecHttp4s,
     redis4catsEffects
   )

@@ -11,6 +11,7 @@ import org.http4s.server.Router
 import org.typelevel.log4cats.Logger
 import tsec.authentication._
 import tsec.authentication.credentials.CredentialsError
+import uz.scala.messenger.domain.custom.refinements.EmailAddress
 
 object UserRoutes {
   val prefixPath = "/user"
@@ -50,6 +51,9 @@ final class UserRoutes[F[_]: Async](userService: UserService[F])(implicit
           logger.error(err)("Error occurred while register User. ") >>
             BadRequest("Something went wrong. Please try again!")
         }
+
+    case GET -> Root / "m" / email =>
+      authService.get(EmailAddress.unsafeFrom(email)).semiflatMap(Ok(_)).getOrElseF(BadRequest("error"))
   }
 
   private[this] val privateRoutes: HttpRoutes[F] = authService.securedRoutes {

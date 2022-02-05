@@ -4,6 +4,11 @@ ThisBuild / organization := "uz.scala"
 ThisBuild / scalaVersion := "2.13.8"
 ThisBuild / version      := "1.0"
 
+lazy val common = crossProject(JSPlatform, JVMPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("modules/common"))
+  .settings(libraryDependencies ++= commonPart)
+
 lazy val server = (project in file("modules/server"))
   .settings(
     name := "messenger",
@@ -15,6 +20,7 @@ lazy val server = (project in file("modules/server"))
     pipelineStages          := Seq(digest, gzip),
     Compile / compile       := ((Compile / compile) dependsOn scalaJSPipeline).value)
   .enablePlugins(WebScalaJSBundlerPlugin)
+  .dependsOn(common.jvm)
 
 lazy val tests = project
   .in(file("modules/tests"))
@@ -49,3 +55,7 @@ lazy val client = (project in file("modules/client"))
     )
   )
   .enablePlugins(ScalaJSBundlerPlugin)
+  .dependsOn(common.js)
+
+lazy val messenger = (project in file(".")).aggregate(server, tests)
+

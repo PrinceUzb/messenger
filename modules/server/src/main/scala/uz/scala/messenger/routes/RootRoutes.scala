@@ -13,6 +13,7 @@ object RootRoutes {
 
     HttpRoutes.of[F] {
       case request @ GET -> Root => FileLoader[F].page("index.html", request)
+      case request @ GET -> Root / "login" => FileLoader[F].page("login.html", request)
       case request if supportedStaticExtensions.exists(request.pathInfo.toString.endsWith) =>
         FileLoader[F].assets(request.pathInfo.toString, request)
     }

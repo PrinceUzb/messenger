@@ -5,7 +5,7 @@ services:
     container_name: messenger-postgres
     command: -c max_connections=10
     volumes:
-      - ../modules/tests/src/main/resources/sql/db.sql:/docker-entrypoint-initdb.d/db.sql
+      - sql/db.sql:/docker-entrypoint-initdb.d/db.sql
     ports:
       - ${POSTGRES_PORT}:5432
     environment:

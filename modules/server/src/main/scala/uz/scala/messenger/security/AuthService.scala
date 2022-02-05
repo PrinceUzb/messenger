@@ -1,5 +1,6 @@
 package uz.scala.messenger.security
 
+import cats.data.OptionT
 import cats.effect._
 import cats.implicits._
 import uz.scala.messenger.domain.Credentials
@@ -33,6 +34,8 @@ trait AuthService[F[_], U] {
   def securedRoutes: SecHttpRoutes[F, U] => HttpRoutes[F]
 
   def discard(authenticator: AuthEncryptedCookie[AES128GCM, EmailAddress])(implicit dsl: Http4sDsl[F]): F[Response[F]]
+
+  def get(emailAddress: EmailAddress): OptionT[F, U]
 }
 
 object LiveAuthService {
@@ -137,4 +140,7 @@ final class LiveAuthService[F[_]: Async, U] private (
       SeeOther(Location(Uri.unsafeFromString("/login")))
     }
   }
+
+  override def get(emailAddress: EmailAddress): OptionT[F, U] =
+    identityService.get(emailAddress)
 }

@@ -6,7 +6,7 @@ import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.string.{MatchesRegex, Uri, Url}
 
 package object refinements {
-  private type EmailPred = MatchesRegex["^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\\.[a-zA-Z]+$"]
+  private type EmailPred    = MatchesRegex["^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\\.[a-zA-Z]+$"]
   private type PasswordPred = MatchesRegex["^(?=.*[0-9])(?=.*[!@#$%^&*])(?=.*[A-Z])[a-zA-Z0-9!@#$%^&*]{6,32}$"]
   private type NicknamePred = MatchesRegex["^[a-zA-Z]{3,}$"]
 

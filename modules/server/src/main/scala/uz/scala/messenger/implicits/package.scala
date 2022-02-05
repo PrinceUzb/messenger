@@ -51,18 +51,16 @@ package object implicits {
       } yield validEntity
   }
 
-  implicit class CirceEncoderOps[T: Encoder](obj: T) {
-    val printer: Printer = Printer.noSpaces.copy(dropNullValues = true)
-
-    def toJson: String = obj.asJson.printWith(printer)
+  implicit class CirceDecoderOps(s: String) {
+    def as[A: Decoder]: A = decode[A](s).fold(throw _, json => json)
   }
 
-  implicit class CirceDecoderOps[T: Decoder](s: String) {
-    def as: T = decode[T](s).fold(throw _, json => json)
-  }
+  implicit class GenericTypeOps[A](obj: A) {
+    private val printer: Printer = Printer.noSpaces.copy(dropNullValues = true)
 
-  implicit class OptionIdOps[A](a: A) {
-    def toOptWhen(cond: => Boolean): Option[A] = if (cond) Some(a) else None
+    def toOptWhen(cond: => Boolean): Option[A] = if (cond) Some(obj) else None
+
+    def toJson(implicit encoder: Encoder[A]): String = obj.asJson.printWith(printer)
   }
 
 }

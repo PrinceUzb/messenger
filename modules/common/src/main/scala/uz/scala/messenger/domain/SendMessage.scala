@@ -5,15 +5,14 @@ import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 
 import java.util.UUID
+import io.circe.refined._
 
-case class Message(
-  id: UUID,
+case class SendMessage(
   to: UUID,
-  from: UUID,
   text: NonEmptyString
 )
 
-object Message {
-  implicit val dec: Decoder[Message] = deriveDecoder
-  implicit val enc: Encoder[Message] = deriveEncoder
+object SendMessage {
+  implicit val dec: Decoder[SendMessage] = deriveDecoder
+  implicit val enc: Encoder[SendMessage] = deriveEncoder
 }
