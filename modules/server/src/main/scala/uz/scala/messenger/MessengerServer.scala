@@ -9,6 +9,7 @@ import uz.scala.messenger.services.redis.RedisClient
 import eu.timepit.refined.auto.autoUnwrap
 import org.http4s._
 import org.http4s.blaze.server.BlazeServerBuilder
+import org.http4s.server.websocket.WebSocketBuilder2
 import org.typelevel.log4cats.Logger
 
 import scala.concurrent.ExecutionContext.global
@@ -27,12 +28,11 @@ object MessengerServer {
 
   private[this] def server[F[_]: Async](
     conf: HttpServerConfig,
-    httpApp: HttpApp[F]
+    httpApp: WebSocketBuilder2[F] => HttpApp[F]
   ): F[Unit] =
     BlazeServerBuilder[F]
       .withExecutionContext(global)
       .bindHttp(conf.port, conf.host)
-      .withHttpApp(httpApp)
       .withHttpWebSocketApp(httpApp)
       .serve
       .compile
