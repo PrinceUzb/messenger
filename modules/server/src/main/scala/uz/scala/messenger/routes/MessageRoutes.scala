@@ -1,7 +1,7 @@
 package uz.scala.messenger.routes
 
 import cats.effect._
-import cats.effect.std.{Queue, QueueSink}
+import fs2.concurrent.Topic
 import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
 import org.http4s.server.websocket.WebSocketBuilder2
@@ -13,13 +13,11 @@ import uz.scala.messenger.implicits.{CirceDecoderOps, GenericTypeOps}
 import uz.scala.messenger.security.AuthService
 import uz.scala.messenger.services.MessageSender
 
-import java.nio.charset.StandardCharsets.UTF_8
-
 object MessageRoutes {
   val prefixPath = "/message"
   def apply[F[_]: Async: Sync: Logger](sender: MessageSender[F])(implicit
     authService: AuthService[F, User],
-    queue: Queue[F, Message]
+    topic: Topic[F, Message]
   ): MessageRoutes[F] =
     new MessageRoutes(sender)
 }
@@ -27,7 +25,7 @@ object MessageRoutes {
 final class MessageRoutes[F[_]: Async](sender: MessageSender[F])(implicit
   logger: Logger[F],
   authService: AuthService[F, User],
-  queue: Queue[F, Message]
+  topic: Topic[F, Message]
 ) {
 
   implicit object dsl extends Http4sDsl[F]
@@ -36,8 +34,7 @@ final class MessageRoutes[F[_]: Async](sender: MessageSender[F])(implicit
   val routes: WebSocketBuilder2[F] => HttpRoutes[F] = wsb =>
     HttpRoutes.of { case GET -> Root / UUIDVar(from) =>
       wsb.build(
-        fs2.Stream.fromQueueUnterminated(queue).filter(_.from != from).map { msg =>
-          println(msg)
+        topic.subscribe(1000).filter(_.from != from).map { msg =>
           Text(msg.toJson)
         },
         _.flatMap {

@@ -16,24 +16,24 @@ import uz.scala.messenger.security.AuthService
 object HttpApi {
   def apply[F[_]: Async: Logger](
     program: MessengerProgram[F],
-    queue: Queue[F, Message],
+    topic: Topic[F, Message],
     logConfig: LogConfig
   )(implicit F: Sync[F]): F[HttpApi[F]] =
     F.delay(
-      new HttpApi[F](program, queue, logConfig)
+      new HttpApi[F](program, topic, logConfig)
     )
 }
 
 final class HttpApi[F[_]: Async: Logger] private (
   program: MessengerProgram[F],
-  queue: Queue[F, Message],
+  topic: Topic[F, Message],
   logConfig: LogConfig
 ) {
   private[this] val root: String        = "/"
   private[this] val webjarsPath: String = "/webjars"
 
   implicit val authUser: AuthService[F, User] = program.auth.user
-  implicit val mt: Queue[F, Message]          = queue
+  implicit val mt: Topic[F, Message]          = topic
 
   private[this] val rootRoutes: HttpRoutes[F] = RootRoutes[F]
   private[this] val userRoutes: HttpRoutes[F] = UserRoutes[F](program.userService).routes
