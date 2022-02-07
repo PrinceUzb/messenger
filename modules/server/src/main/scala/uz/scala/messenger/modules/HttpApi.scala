@@ -35,7 +35,7 @@ final class HttpApi[F[_]: Async: Logger] private (
   implicit val authUser: AuthService[F, User] = program.auth.user
   implicit val mt: Topic[F, Message]          = topic
 
-  private[this] val rootRoutes: HttpRoutes[F] = RootRoutes[F]
+  private[this] val rootRoutes: HttpRoutes[F] = RootRoutes[F].routes
   private[this] val userRoutes: HttpRoutes[F] = UserRoutes[F](program.userService).routes
   private[this] val messageRoutes: WebSocketBuilder2[F] => HttpRoutes[F] = wsb =>
     MessageRoutes[F](program.messageSender).routes(wsb)
@@ -47,10 +47,10 @@ final class HttpApi[F[_]: Async: Logger] private (
   val httpApp: WebSocketBuilder2[F] => HttpApp[F] = wsb =>
     loggedRoutes(
       Router(
-        root                     -> rootRoutes,
         webjarsPath              -> webjars,
         UserRoutes.prefixPath    -> userRoutes,
-        MessageRoutes.prefixPath -> messageRoutes(wsb)
+        MessageRoutes.prefixPath -> messageRoutes(wsb),
+        root                     -> rootRoutes,
       )
     ).orNotFound
 }
