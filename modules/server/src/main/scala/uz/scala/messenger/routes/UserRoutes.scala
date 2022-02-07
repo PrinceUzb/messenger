@@ -7,7 +7,6 @@ import uz.scala.messenger.security.AuthService
 import uz.scala.messenger.services.UserService
 import org.http4s._
 import org.http4s.dsl.Http4sDsl
-import org.http4s.server.Router
 import org.typelevel.log4cats.Logger
 import tsec.authentication._
 import tsec.authentication.credentials.CredentialsError

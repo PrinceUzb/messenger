@@ -1,7 +1,6 @@
 package uz.scala.messenger.modules
 
 import cats.effect._
-import cats.effect.kernel.Async
 import cats.effect.std.Console
 import eu.timepit.refined.auto.autoUnwrap
 import natchez.Trace.Implicits.noop

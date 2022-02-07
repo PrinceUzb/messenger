@@ -4,6 +4,7 @@ import cats.effect.{Resource, Sync}
 import cats.implicits._
 import eu.timepit.refined.auto.autoUnwrap
 import skunk.Session
+import skunk.implicits.toIdOps
 import tsec.passwordhashers.PasswordHash
 import tsec.passwordhashers.jca.SCrypt
 import uz.scala.messenger.db.sql.UserSql._
@@ -34,7 +35,7 @@ object UserAlgebra {
 
     override def create(userData: UserData): F[User] =
       GenUUID[F].make.flatMap { uuid =>
-        session.use(_.prepare(insert).use(_.unique((uuid, userData))))
+        prepQueryUnique(insert, uuid ~ userData)
       }
 
   }
