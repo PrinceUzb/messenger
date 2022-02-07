@@ -14,7 +14,7 @@ trait Database[F[_]] {
   val message: F[MessageAlgebra[F]]
 }
 
-object LiveDatabase {
+object Database {
   def apply[F[_]: Async: Console](config: DBConfig)(implicit F: Sync[F]): F[Database[F]] =
     Session
       .pooled[F](
@@ -29,12 +29,12 @@ object LiveDatabase {
       .use { implicit session =>
         F.delay(new LiveDatabase[F])
       }
-}
 
-final class LiveDatabase[F[_]: Async: Console](implicit
-  session: Resource[F, Session[F]]
-) extends Database[F] {
+  final class LiveDatabase[F[_]: Async: Console](implicit
+    session: Resource[F, Session[F]]
+  ) extends Database[F] {
 
-  override val user: F[UserAlgebra[F]]       = UserAlgebra[F]
-  override val message: F[MessageAlgebra[F]] = MessageAlgebra[F]
+    override val user: F[UserAlgebra[F]]       = UserAlgebra[F]
+    override val message: F[MessageAlgebra[F]] = MessageAlgebra[F]
+  }
 }

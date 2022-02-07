@@ -34,7 +34,7 @@ final class MessageRoutes[F[_]: Async](sender: MessageSender[F])(implicit
   val routes: WebSocketBuilder2[F] => HttpRoutes[F] = wsb =>
     HttpRoutes.of { case GET -> Root / UUIDVar(from) =>
       wsb.build(
-        topic.subscribe(1000).filter(_.from != from).map { msg =>
+        topic.subscribe(1000).filter(_.to == from).map { msg =>
           Text(msg.toJson)
         },
         _.flatMap {

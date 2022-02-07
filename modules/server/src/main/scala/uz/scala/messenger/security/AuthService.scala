@@ -26,7 +26,7 @@ import scala.concurrent.duration.DurationInt
 
 abstract class AuthService[F[_]: Sync, U] {
   private[this] val cachedUnauthorized: Response[F] = Response[F](Status.Unauthorized)
-  private[this] val defaultNotAuthenticated: Request[F] => F[Response[F]] = _ => Sync[F].pure(cachedUnauthorized)
+  protected val defaultNotAuthenticated: OnNotAuthenticated[F] = _ => Sync[F].pure(cachedUnauthorized)
 
   def authorizer(request: Multipart[F])(implicit dsl: Http4sDsl[F]): F[Response[F]]
 
@@ -34,7 +34,7 @@ abstract class AuthService[F[_]: Sync, U] {
 
   def securedRoutesWithToken: TokenSecHttpRoutes[F, U] => HttpRoutes[F]
 
-  def securedRoutes(pf: SecHttpRoutes[F, U], onNotAuthenticated: Request[F] => F[Response[F]] = defaultNotAuthenticated): HttpRoutes[F]
+  def securedRoutes(pf: SecHttpRoutes[F, U], onNotAuthenticated: OnNotAuthenticated[F] = defaultNotAuthenticated): HttpRoutes[F]
 
   def discard(authenticator: AuthEncryptedCookie[AES128GCM, EmailAddress])(implicit dsl: Http4sDsl[F]): F[Response[F]]
 
@@ -129,12 +129,11 @@ final class LiveAuthService[F[_]: Async, U] private (
     } yield response
   }
 
-
   override def securedRoutesWithToken: TokenSecHttpRoutes[F, U] => HttpRoutes[F] = pf =>
     authWithToken.liftService(TSecAuthService(pf))
 
-  override def securedRoutes(pf: SecHttpRoutes[F, U], onNotAuthenticated: Request[F] => F[Response[F]]): HttpRoutes[F] =
-    auth.liftService(TSecAuthService(pf), onNotAuthenticated)
+  override def securedRoutes(pf: SecHttpRoutes[F, U], onNotAuthenticated: OnNotAuthenticated[F]): HttpRoutes[F] =
+    auth.liftService(TSecAuthService(pf), onNotAuthenticated.orElse(defaultNotAuthenticated))
 
   override def discard(
     authenticator: AuthEncryptedCookie[AES128GCM, EmailAddress]

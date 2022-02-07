@@ -1,4 +1,4 @@
-package uz.scala.messenger.api
+package uz.scala.messenger.e2e
 
 import uz.scala.messenger.test.utils._
 

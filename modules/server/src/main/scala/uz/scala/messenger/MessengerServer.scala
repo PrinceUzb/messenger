@@ -21,7 +21,7 @@ object MessengerServer {
   def run[F[_]: Async: Console: Logger]: F[ExitCode] =
     for {
       conf     <- ConfigLoader.app[F]
-      db       <- LiveDatabase[F](conf.dbConfig)
+      db       <- Database[F](conf.dbConfig)
       redis    <- RedisClient[F](conf.redisConfig)
       queue    <- Queue.unbounded[F, Message]
       topic    <- Topic[F, Message]
