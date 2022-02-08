@@ -24,7 +24,7 @@ abstract class AjaxImplicits {
 
   private[this] def isSuccessFull: XMLHttpRequest => Boolean = xhr =>
     (xhr.status >= 200 && xhr.status < 300 && xhr.responseText.nonEmpty &&
-      xhr.getResponseHeader("Content-Type") == "application/json") || xhr.status == 204
+      xhr.getResponseHeader("Content-Type") == "application/json") || xhr.status == 204 || xhr.status == 303
 
   def post[T: Encoder](url: String, body: T): Step2 =
     Ajax("POST", url).setRequestContentTypeJsonUtf8

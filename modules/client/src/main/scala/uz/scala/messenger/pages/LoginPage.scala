@@ -1,43 +1,34 @@
 package uz.scala.messenger.pages
 
 import japgolly.scalajs.react.component.Scala
-import japgolly.scalajs.react.component.Scala.Unmounted
+import japgolly.scalajs.react.component.Scala.{Component, Unmounted}
 import japgolly.scalajs.react.facade.SyntheticEvent
 import japgolly.scalajs.react.vdom.html_<^._
 import japgolly.scalajs.react.{Callback, CtorType, ScalaComponent}
+import org.scalajs.dom.HTMLInputElement
 import org.scalajs.dom.html.Element
-import org.scalajs.dom.{HTMLInputElement, window}
 import uz.scala.messenger.AjaxImplicits
-import uz.scala.messenger.domain.EmailAndPassword
 
 object LoginPage {
   def apply(): LoginPage = new LoginPage()
 
 }
 class LoginPage extends AjaxImplicits {
-  case class State(email: String = "", password: String = "")
+  case class State(alert: Option[String] = None, email: String = "", password: String = "")
 
-  type AppComponent  = Scala.Component[Unit, State, Backend, CtorType.Nullary]
+  type AppComponent  = Component[Option[String], State, Backend, CtorType.Props]
   type OnInputChange = SyntheticEvent[HTMLInputElement] => Callback
 
-  class Backend($ : Scala.BackendScope[Unit, State]) {
+  class Backend($ : Scala.BackendScope[_, State]) {
 
     def onChangeEmail: OnInputChange = e => $.modState(_.copy(email = e.target.value))
 
     def onChangePassword: OnInputChange = e => $.modState(_.copy(password = e.target.value))
 
-    def login(implicit state: State): Callback =
-      post[EmailAndPassword](s"/user/login", EmailAndPassword(state.email, state.password))
-        .fail(onError)
-        .doneWithoutContent {
-          Callback(window.location.href = "/")
-        }
-        .asCallback
-
     def render(implicit state: State): VdomTagOf[Element] = {
       <.div(^.cls := "text-center")(
         <.main(^.cls := "form-signin")(
-          <.form(
+          <.form(^.action := "/user/login", ^.method := "POST", ^.encType := "multipart/form-data")(
             <.img(
               ^.cls    := "mb-4",
               ^.src    := "/docs/5.1/assets/brand/bootstrap-logo.svg",
@@ -46,34 +37,37 @@ class LoginPage extends AjaxImplicits {
               ^.height := "57"
             ),
             <.h1(^.cls := "h3 mb-3 fw-normal", "Please sign in"),
+            state.alert.fold(TagMod.empty)(alert => <.h4(^.cls := "h3 mb-3 fw-normal text-danger", alert)),
             <.div(^.cls := "form-floating")(
               <.input(
                 ^.`type`      := "email",
                 ^.cls         := "form-control",
-                ^.id          := "floatingInput",
+                ^.id          := "email",
+                ^.name        := "email",
                 ^.placeholder := "name@example.com",
                 ^.value       := state.email,
                 ^.onChange ==> onChangeEmail
               ),
-              <.label(^.`for` := "floatingInput")("Email address")
+              <.label(^.`for` := "email")("Email address")
             ),
             <.div(^.cls := "form-floating")(
               <.input(
                 ^.`type`      := "password",
                 ^.cls         := "form-control",
-                ^.id          := "floatingPassword",
+                ^.name        := "password",
+                ^.id          := "password",
                 ^.placeholder := "Password",
                 ^.value       := state.password,
                 ^.onChange ==> onChangePassword
               ),
-              <.label(^.`for` := "floatingPassword")("Password")
+              <.label(^.`for` := "password")("Password")
             ),
             <.div(^.cls := "checkbox mb-3")(
               <.label(<.input(^.`type` := "checkbox", ^.value := "remember-me"))(
                 "Remember me"
               )
             ),
-            <.button(^.cls := "w-100 btn btn-lg btn-primary", ^.`type` := "button", ^.onClick --> login)("Sign in"),
+            <.button(^.cls := "w-100 btn btn-lg btn-primary", ^.`type` := "submit")("Sign in"),
             <.p(^.cls := "mt-5 mb-3 text-muted")("© 2017–2021")
           )
         )
@@ -84,10 +78,10 @@ class LoginPage extends AjaxImplicits {
 
   val Component: AppComponent =
     ScalaComponent
-      .builder[Unit]
-      .initialState(State())
+      .builder[Option[String]]
+      .initialStateFromProps(p => State(p))
       .renderBackend[Backend]
       .build
 
-  def component: Unmounted[Unit, State, Backend] = Component()
+  def component(alert: Option[String] = None): Unmounted[Option[String], State, Backend] = Component(alert)
 }

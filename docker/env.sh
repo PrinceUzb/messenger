@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export POSTGRES_HOST="localhost"
-export POSTGRES_PORT=5433
+export POSTGRES_PORT=5439
 export POSTGRES_USER="messenger"
 export POSTGRES_PASSWORD="123"
 export POSTGRES_DATABASE="messenger"

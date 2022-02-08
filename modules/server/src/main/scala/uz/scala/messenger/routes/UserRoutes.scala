@@ -3,14 +3,18 @@ package uz.scala.messenger.routes
 import cats.effect._
 import cats.implicits._
 import uz.scala.messenger.domain._
+import uz.scala.messenger.implicits.ResponseIdOps
 import uz.scala.messenger.security.AuthService
 import uz.scala.messenger.services.UserService
 import org.http4s._
 import org.http4s.dsl.Http4sDsl
+import org.http4s.headers.Location
+import org.http4s.multipart.Multipart
 import org.typelevel.log4cats.Logger
 import tsec.authentication._
 import tsec.authentication.credentials.CredentialsError
 import uz.scala.messenger.domain.custom.refinements.EmailAddress
+import uz.scala.messenger.utils._
 
 object UserRoutes {
   val prefixPath = "/user"
@@ -29,15 +33,21 @@ final class UserRoutes[F[_]: Async](userService: UserService[F])(implicit
 
   private[this] val loginRoutes: HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ POST -> Root / "login" =>
-      authService
-        .authorizer(req)
-        .recoverWith {
-          case _: CredentialsError =>
-            Forbidden("Email or password isn't correct!")
-          case error =>
-            logger.error(error)(s"Error occurred while authorization. Error:") >>
-              BadRequest("Something went wrong. Please try again!")
-        }
+      req.decode[Multipart[F]] { multipart =>
+        authService
+          .authorizer(multipart)
+          .recoverWith {
+            case _: CredentialsError =>
+              SeeOther(Location(Uri.unsafeFromString("/"))).map {
+                _.withSession(Alert(Error, "Email or password isn't correct!"))
+              }.flatTap(a=>logger.debug(a.toString()))
+            case error =>
+              logger.error(error)(s"Error occurred while authorization. Error:") >>
+                SeeOther(Location(Uri.unsafeFromString("/"))).map {
+                  _.withSession(Alert(Error, "Something went wrong. Please try again!"))
+                }.flatTap(a=>println(a.toString()).pure[F])
+          }
+      }
 
     case req @ POST -> Root / "register" =>
       (for {
