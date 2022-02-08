@@ -34,13 +34,6 @@ object AuthHelper {
   implicit def encryptedCookieCodec[A, T: Encoder: Decoder]: Codec[AuthEncryptedCookie[A, T]] =
     Codec.from(decEncryptedCookie[A, T], encEncryptedCookie[A, T])
 
-  implicit def encEncryptedCookie[A, T: Encoder]: Encoder[AuthEncryptedCookie[A, T]] =
-    deriveEncoder[AuthEncryptedCookie[A, T]]
-  implicit def decEncryptedCookie[A, T: Decoder]: Decoder[AuthEncryptedCookie[A, T]] =
-    deriveDecoder[AuthEncryptedCookie[A, T]]
-  implicit def encryptedCookieCodec[A, T: Encoder: Decoder]: Codec[AuthEncryptedCookie[A, T]] =
-    Codec.from(decEncryptedCookie[A, T], encEncryptedCookie[A, T])
-
   type TokenSecReqHandler[F[_], U] = SecuredRequestHandler[F, EmailAddress, U, TSecBearerToken[EmailAddress]]
   type SecReqHandler[F[_], U] = SecuredRequestHandler[F, EmailAddress, U, AuthEncryptedCookie[AES128GCM, EmailAddress]]
 

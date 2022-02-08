@@ -65,7 +65,7 @@ final class UserRoutes[F[_]: Async](userService: UserService[F])(implicit
       authService.get(EmailAddress.unsafeFrom(email)).semiflatMap(Ok(_)).getOrElseF(BadRequest("error"))
   }
 
-  private[this] val privateRoutes: HttpRoutes[F] = authService.securedRoutes2 {
+  private[this] val privateRoutes: HttpRoutes[F] = authService.securedRoutes {
     case GET -> Root asAuthed user =>
       Ok(user)
 

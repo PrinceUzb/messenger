@@ -35,8 +35,8 @@ class RedisClient[F[_]: Async](redisConfig: RedisConfig)(implicit F: Sync[F]) {
   }
   object TsecSecretKey {
 
-    implicit def encSecret[A]: Encoder[SecretKey[A]] = Encoder.encodeString.contramap(key => new String(key.toJavaKey.getEncoded, StandardCharsets.UTF_8))
-    implicit def decSecret[A]: Encoder[SecretKey[A]] = Decoder.decodeString.map(str => SecretKey[A].str.getBytes(StandardCharsets.UTF_8))
+    implicit val encSecret: Encoder[SecretKey[AES128GCM]] = Encoder.encodeString.contramap(key => new String(key.toJavaKey.getEncoded, StandardCharsets.UTF_8))
+    implicit val decSecret: Decoder[SecretKey[AES128GCM]] = Decoder.decodeString.map(str => AES128GCM.unsafeBuildKey(str.getBytes(StandardCharsets.UTF_8)))
     implicit val dec: Decoder[TsecSecretKey] = deriveDecoder[TsecSecretKey]
     implicit val enc: Encoder[TsecSecretKey] = deriveEncoder[TsecSecretKey]
   }
