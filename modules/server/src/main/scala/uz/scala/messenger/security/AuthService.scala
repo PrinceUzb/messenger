@@ -23,6 +23,7 @@ import uz.scala.messenger.services.IdentityService
 import uz.scala.messenger.services.redis.RedisClient
 import uz.scala.messenger.utils.{Alert, Error}
 
+import java.util.UUID
 import scala.concurrent.duration.DurationInt
 
 abstract class AuthService[F[_]: Sync, U] {
@@ -68,6 +69,9 @@ final class LiveAuthService[F[_]: Async, U] private (
   private[this] val bearerTokenStore =
     redisClient.dummyBackingStore[SecureRandomId, TSecBearerToken[EmailAddress]](s => SecureRandomId.coerce(s.id))
 
+  private[this] val encryptedCookieStore =
+    redisClient.dummyBackingStore[UUID, AuthEncryptedCookie[AES128GCM, EmailAddress]](_.id)
+
   private[this] val settings: TSecTokenSettings =
     TSecTokenSettings(
       expiryDuration = 8.hours,
@@ -91,16 +95,17 @@ final class LiveAuthService[F[_]: Async, U] private (
       settings
     )
 
-  private[this] def stateless: StatelessECAuthenticator[F, EmailAddress, U, AES128GCM] =
-    EncryptedCookieAuthenticator.stateless(
+  private[this] def stateful: StatefulECAuthenticator[F, EmailAddress, U, AES128GCM] =
+    EncryptedCookieAuthenticator.withBackingStore(
       cookieSetting,
+      encryptedCookieStore,
       identityService,
       key
     )
 
   private[this] def authWithToken: TokenSecReqHandler[F, U] = SecuredRequestHandler(bearerTokenAuth)
 
-  private[this] def auth: SecReqHandler[F, U] = SecuredRequestHandler(stateless)
+  private[this] def auth: SecReqHandler[F, U] = SecuredRequestHandler(stateful)
 
   private[this] def verify(Credentials: Credentials): F[Boolean] =
     identityService.credentialStore.isAuthenticated(RawCredentials(Credentials.email, Credentials.password))
