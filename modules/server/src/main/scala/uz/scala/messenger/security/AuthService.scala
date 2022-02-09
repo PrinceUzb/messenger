@@ -51,15 +51,17 @@ abstract class AuthService[F[_]: Sync, U] {
 
 object LiveAuthService {
   def apply[F[_]: Async, U](
-    identityService: IdentityService[F, U]
+    identityService: IdentityService[F, U],
+    key: SecretKey[AES128GCM]
   )(implicit F: Sync[F], redisClient: RedisClient[F]): F[AuthService[F, U]] =
     F.delay(
-      new LiveAuthService[F, U](identityService)
+      new LiveAuthService[F, U](identityService, key)
     )
 }
 
 final class LiveAuthService[F[_]: Async, U] private (
-  identityService: IdentityService[F, U]
+  identityService: IdentityService[F, U],
+  key: SecretKey[AES128GCM]
 )(implicit F: Sync[F], redisClient: RedisClient[F])
     extends AuthService[F, U] {
 
@@ -86,16 +88,15 @@ final class LiveAuthService[F[_]: Async, U] private (
       path = "/".some
     )
 
-  private[this] val key: SecretKey[AES128GCM] = AES128GCM.unsafeGenerateKey
 
-  private[this] def bearerTokenAuth: BearerTokenAuthenticator[F, EmailAddress, U] =
+  private[this] val bearerTokenAuth: BearerTokenAuthenticator[F, EmailAddress, U] =
     BearerTokenAuthenticator(
       bearerTokenStore,
       identityService,
       settings
     )
 
-  private[this] def stateful: StatefulECAuthenticator[F, EmailAddress, U, AES128GCM] =
+  private[this] val stateful: StatefulECAuthenticator[F, EmailAddress, U, AES128GCM] =
     EncryptedCookieAuthenticator.withBackingStore(
       cookieSetting,
       encryptedCookieStore,
