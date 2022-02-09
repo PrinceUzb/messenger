@@ -49,7 +49,7 @@ class RedisClient[F[_]: Async](redisConfig: RedisConfig)(implicit F: Sync[F]) {
     * @param redisCommands the commands redis
     * @return the tsec SecretKey[A] [[SecretKey]]
     */
-  def generateKey(now: Instant)(implicit redisCommands: RedisCommands[F, String, String]): F[SecretKey[AES128GCM]] =
+  private[redis] def generateKey(now: Instant)(implicit redisCommands: RedisCommands[F, String, String]): F[SecretKey[AES128GCM]] =
     AES128GCM.generateKey[F].flatMap { newKey =>
       val newTecSecretKey = TsecSecretKey(newKey, now.plusSeconds(10.days.toSeconds))
       redisCommands.setEx(TSEC_KEY, newTecSecretKey.toJson, 10.days).map { _ =>
@@ -62,7 +62,7 @@ class RedisClient[F[_]: Async](redisConfig: RedisConfig)(implicit F: Sync[F]) {
     * @param redisCommands the commands redis
     * @return the tsec SecretKey[A] [[SecretKey]]
     */
-  def validateAndRetrieve(now: Instant, secretKey: TsecSecretKey)(implicit
+  private[redis] def validateAndRetrieve(now: Instant, secretKey: TsecSecretKey)(implicit
     redisCommands: RedisCommands[F, String, String]
   ): F[SecretKey[AES128GCM]] =
     if (secretKey.isExpired(now))
