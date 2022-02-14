@@ -21,7 +21,7 @@ import uz.scala.messenger.implicits.{PartOps, ResponseIdOps}
 import uz.scala.messenger.security.AuthHelper._
 import uz.scala.messenger.services.IdentityService
 import uz.scala.messenger.services.redis.RedisClient
-import uz.scala.messenger.utils.{Alert, Error}
+import uz.scala.messenger.utils.Error
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
@@ -49,7 +49,7 @@ abstract class AuthService[F[_]: Sync, U] {
   def get(emailAddress: EmailAddress): OptionT[F, U]
 }
 
-object LiveAuthService {
+object AuthService {
   def apply[F[_]: Async, U](
     identityService: IdentityService[F, U],
     key: SecretKey[AES128GCM]
@@ -57,119 +57,118 @@ object LiveAuthService {
     F.delay(
       new LiveAuthService[F, U](identityService, key)
     )
-}
 
-final class LiveAuthService[F[_]: Async, U] private (
-  identityService: IdentityService[F, U],
-  key: SecretKey[AES128GCM]
-)(implicit F: Sync[F], redisClient: RedisClient[F])
-    extends AuthService[F, U] {
+  final class LiveAuthService[F[_]: Async, U](
+    identityService: IdentityService[F, U],
+    key: SecretKey[AES128GCM]
+  )(implicit F: Sync[F], redisClient: RedisClient[F])
+      extends AuthService[F, U] {
 
-  implicit val encryptor: AADEncryptor[F, AES128GCM, SecretKey] = AES128GCM.genEncryptor[F]
-  implicit val gcmStrategy: IvGen[F, AES128GCM]                 = AES128GCM.defaultIvStrategy[F]
+    implicit val encryptor: AADEncryptor[F, AES128GCM, SecretKey] = AES128GCM.genEncryptor[F]
+    implicit val gcmStrategy: IvGen[F, AES128GCM]                 = AES128GCM.defaultIvStrategy[F]
 
-  private[this] val bearerTokenStore =
-    redisClient.dummyBackingStore[SecureRandomId, TSecBearerToken[EmailAddress]](s => SecureRandomId.coerce(s.id))
+    private[this] val bearerTokenStore =
+      redisClient.dummyBackingStore[SecureRandomId, TSecBearerToken[EmailAddress]](s => SecureRandomId.coerce(s.id))
 
-  private[this] val encryptedCookieStore =
-    redisClient.dummyBackingStore[UUID, AuthEncryptedCookie[AES128GCM, EmailAddress]](_.id)
+    private[this] val encryptedCookieStore =
+      redisClient.dummyBackingStore[UUID, AuthEncryptedCookie[AES128GCM, EmailAddress]](_.id)
 
-  private[this] val settings: TSecTokenSettings =
-    TSecTokenSettings(
-      expiryDuration = 8.hours,
-      maxIdle = 30.minutes.some
-    )
+    private[this] val settings: TSecTokenSettings =
+      TSecTokenSettings(
+        expiryDuration = 8.hours,
+        maxIdle = 30.minutes.some
+      )
 
-  private[this] val cookieSetting: TSecCookieSettings =
-    TSecCookieSettings(
-      secure = true,
-      expiryDuration = 8.hours,
-      maxIdle = 30.minutes.some,
-      path = "/".some
-    )
+    private[this] val cookieSetting: TSecCookieSettings =
+      TSecCookieSettings(
+        secure = true,
+        expiryDuration = 8.hours,
+        maxIdle = 30.minutes.some,
+        path = "/".some
+      )
 
+    private[this] val bearerTokenAuth: BearerTokenAuthenticator[F, EmailAddress, U] =
+      BearerTokenAuthenticator(
+        bearerTokenStore,
+        identityService,
+        settings
+      )
 
-  private[this] val bearerTokenAuth: BearerTokenAuthenticator[F, EmailAddress, U] =
-    BearerTokenAuthenticator(
-      bearerTokenStore,
-      identityService,
-      settings
-    )
+    private[this] val stateful: StatefulECAuthenticator[F, EmailAddress, U, AES128GCM] =
+      EncryptedCookieAuthenticator.withBackingStore(
+        cookieSetting,
+        encryptedCookieStore,
+        identityService,
+        key
+      )
 
-  private[this] val stateful: StatefulECAuthenticator[F, EmailAddress, U, AES128GCM] =
-    EncryptedCookieAuthenticator.withBackingStore(
-      cookieSetting,
-      encryptedCookieStore,
-      identityService,
-      key
-    )
+    private[this] def authWithToken: TokenSecReqHandler[F, U] = SecuredRequestHandler(bearerTokenAuth)
 
-  private[this] def authWithToken: TokenSecReqHandler[F, U] = SecuredRequestHandler(bearerTokenAuth)
+    private[this] def auth: SecReqHandler[F, U] = SecuredRequestHandler(stateful)
 
-  private[this] def auth: SecReqHandler[F, U] = SecuredRequestHandler(stateful)
+    private[this] def verify(Credentials: Credentials): F[Boolean] =
+      identityService.credentialStore.isAuthenticated(RawCredentials(Credentials.email, Credentials.password))
 
-  private[this] def verify(Credentials: Credentials): F[Boolean] =
-    identityService.credentialStore.isAuthenticated(RawCredentials(Credentials.email, Credentials.password))
-
-  private[this] def createSession(credentials: Credentials)(implicit dsl: Http4sDsl[F]): F[Response[F]] = {
-    import dsl._
-    auth.authenticator
-      .create(credentials.email)
-      .flatMap { cookie =>
-        SeeOther(Location(Uri.unsafeFromString("/"))).map { response =>
-          auth.authenticator.embed(response, cookie)
+    private[this] def createSession(credentials: Credentials)(implicit dsl: Http4sDsl[F]): F[Response[F]] = {
+      import dsl._
+      auth.authenticator
+        .create(credentials.email)
+        .flatMap { cookie =>
+          SeeOther(Location(Uri.unsafeFromString("/"))).map { response =>
+            auth.authenticator.embed(response, cookie)
+          }
         }
-      }
-  }
-
-  override def authorizer(request: Multipart[F])(implicit dsl: Http4sDsl[F]): F[Response[F]] = {
-    import dsl._
-    for {
-      credentials <- request.parts.convert[Credentials]
-      isAuthed    <- verify(credentials)
-      response <-
-        if (isAuthed)
-          createSession(credentials)
-        else
-          SeeOther(Location(Uri.unsafeFromString("/"))).map {
-            _.withSession(Alert(Error, "Email or password isn't correct!"))
-          }
-    } yield response
-  }
-
-  override def authorizer(request: Request[F])(implicit dsl: Http4sDsl[F]): F[Response[F]] = {
-    import dsl._
-    for {
-      credentials <- request.as[Credentials]
-      isAuthed    <- verify(credentials)
-      response <-
-        if (isAuthed)
-          createSession(credentials)
-        else
-          SeeOther(Location(Uri.unsafeFromString("/"))).map {
-            _.withSession(Alert(Error, "Email or password isn't correct!"))
-          }
-    } yield response
-  }
-
-  override def securedRoutesWithToken(
-    pf: TokenSecHttpRoutes[F, U],
-    onNotAuthenticated: OnNotAuthenticated[F]
-  ): HttpRoutes[F] =
-    authWithToken.liftService(TSecAuthService(pf), onNotAuthenticated.orElse(defaultNotAuthenticated))
-
-  override def securedRoutes(pf: SecHttpRoutes[F, U], onNotAuthenticated: OnNotAuthenticated[F]): HttpRoutes[F] =
-    auth.liftService(TSecAuthService(pf), onNotAuthenticated.orElse(defaultNotAuthenticated))
-
-  override def discard(
-    authenticator: AuthEncryptedCookie[AES128GCM, EmailAddress]
-  )(implicit dsl: Http4sDsl[F]): F[Response[F]] = {
-    import dsl._
-    auth.authenticator.discard(authenticator).flatMap { _ =>
-      SeeOther(Location(Uri.unsafeFromString("/")))
     }
-  }
 
-  override def get(emailAddress: EmailAddress): OptionT[F, U] =
-    identityService.get(emailAddress)
+    override def authorizer(request: Multipart[F])(implicit dsl: Http4sDsl[F]): F[Response[F]] = {
+      import dsl._
+      for {
+        credentials <- request.parts.convert[Credentials]
+        isAuthed    <- verify(credentials)
+        response <-
+          if (isAuthed)
+            createSession(credentials)
+          else
+            SeeOther(Location(Uri.unsafeFromString("/"))).map {
+              _.flashing(Error, "Email or password isn't correct!")
+            }
+      } yield response
+    }
+
+    override def authorizer(request: Request[F])(implicit dsl: Http4sDsl[F]): F[Response[F]] = {
+      import dsl._
+      for {
+        credentials <- request.as[Credentials]
+        isAuthed    <- verify(credentials)
+        response <-
+          if (isAuthed)
+            createSession(credentials)
+          else
+            SeeOther(Location(Uri.unsafeFromString("/"))).map {
+              _.flashing(Error, "Email or password isn't correct!")
+            }
+      } yield response
+    }
+
+    override def securedRoutesWithToken(
+      pf: TokenSecHttpRoutes[F, U],
+      onNotAuthenticated: OnNotAuthenticated[F]
+    ): HttpRoutes[F] =
+      authWithToken.liftService(TSecAuthService(pf), onNotAuthenticated.orElse(defaultNotAuthenticated))
+
+    override def securedRoutes(pf: SecHttpRoutes[F, U], onNotAuthenticated: OnNotAuthenticated[F]): HttpRoutes[F] =
+      auth.liftService(TSecAuthService(pf), onNotAuthenticated.orElse(defaultNotAuthenticated))
+
+    override def discard(
+      authenticator: AuthEncryptedCookie[AES128GCM, EmailAddress]
+    )(implicit dsl: Http4sDsl[F]): F[Response[F]] = {
+      import dsl._
+      auth.authenticator.discard(authenticator).flatMap { _ =>
+        SeeOther(Location(Uri.unsafeFromString("/")))
+      }
+    }
+
+    override def get(emailAddress: EmailAddress): OptionT[F, U] =
+      identityService.get(emailAddress)
+  }
 }

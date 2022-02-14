@@ -3,24 +3,29 @@ package uz.scala.messenger.implicits
 import cats.implicits.catsSyntaxOptionId
 import eu.timepit.refined.auto.autoUnwrap
 import eu.timepit.refined.types.string.NonEmptyString
-import org.http4s.{ResponseCookie, SameSite}
+import org.http4s.{HttpDate, ResponseCookie, SameSite}
+import uz.scala.messenger.utils.AlertLevel
+
+import java.time.Instant
 
 final case class FlashSetting(
-  name: String = "HTTP4S_FLASH",
+  level: AlertLevel,
   content: NonEmptyString,
+  name: String = "HTTP4S_FLASH",
   secure: Boolean = false,
-  httpOnly: Boolean = true,
+  httpOnly: Boolean = false,
   domain: Option[String] = None,
   path: Option[String] = "/".some,
+  extension: Option[String] = None,
   sameSite: Option[SameSite] = org.http4s.SameSite.Lax.some,
-  extension: Option[String] = None
 ) {
 
   def toCookie: ResponseCookie =
     ResponseCookie(
       name = name,
-      content = content,
+      content = level.value + "-" + content,
       domain = domain,
+//      expires = HttpDate.unsafeFromInstant(Instant.now().plusSeconds(1)).some,
       path = path,
       sameSite = sameSite,
       secure = secure,

@@ -39,12 +39,12 @@ final class UserRoutes[F[_]: Async](userService: UserService[F])(implicit
           .recoverWith {
             case _: CredentialsError =>
               SeeOther(Location(Uri.unsafeFromString("/"))).map {
-                _.withSession(Alert(Error, "Email or password isn't correct!"))
+                _.flashing(Error, "Something went wrong. Please try again!")
               }.flatTap(a=>logger.debug(a.toString()))
             case error =>
               logger.error(error)(s"Error occurred while authorization. Error:") >>
                 SeeOther(Location(Uri.unsafeFromString("/"))).map {
-                  _.withSession(Alert(Error, "Something went wrong. Please try again!"))
+                  _.flashing(Error, "Something went wrong. Please try again!")
                 }.flatTap(a=>println(a.toString()).pure[F])
           }
       }

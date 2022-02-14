@@ -3,6 +3,7 @@ package uz.scala.messenger
 import cats.effect.{Async, Sync}
 import cats.implicits._
 import eu.timepit.refined.auto.autoUnwrap
+import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Encoder, Printer}
@@ -15,6 +16,7 @@ import uz.scala.messenger.domain.custom.exception.MultipartDecodeError
 import uz.scala.messenger.domain.custom.refinements.Password
 import uz.scala.messenger.domain.custom.utils.MapConvert
 import uz.scala.messenger.domain.custom.utils.MapConvert.ValidationResult
+import uz.scala.messenger.utils.AlertLevel
 
 package object implicits {
 
@@ -64,10 +66,8 @@ package object implicits {
   }
 
   implicit class ResponseIdOps[F[_]](r: Response[F]) {
-    def withSession(s: utils.Alert): Response[F] =
-      r.withAttribute(utils.FLASH_SESSION, s)
-    def getSession: Option[utils.Alert] =
-      r.attributes.lookup(utils.FLASH_SESSION)
+    def flashing(alert: AlertLevel, body: String): Response[F] =
+      r.addCookie(FlashSetting(alert, NonEmptyString.unsafeFrom(body)).toCookie)
   }
 
 }
