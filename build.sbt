@@ -1,4 +1,5 @@
 import Dependencies._
+import org.scalajs.linker.interface.{ModuleInitializer, ModuleSplitStyle}
 
 ThisBuild / organization := "uz.scala"
 ThisBuild / scalaVersion := "2.13.8"
@@ -37,6 +38,8 @@ lazy val client = (project in file("modules/client"))
     name := "client",
     scalaJSUseMainModuleInitializer := true,
     resolvers += Resolver.sonatypeRepo("releases"),
+    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
+    scalaJSLinkerConfig ~= (_.withModuleSplitStyle(ModuleSplitStyle.FewestModules)),
     libraryDependencies ++= Seq(
       "io.github.chronoscala"             %%% "chronoscala"   % "2.0.2",
       "com.github.japgolly.scalajs-react" %%% "core"          % Versions.scalaJsReact,

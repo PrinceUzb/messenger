@@ -1,6 +1,5 @@
 package uz.scala.messenger.security
 
-import cats.data.OptionT
 import cats.effect._
 import cats.implicits._
 import eu.timepit.refined.auto.autoUnwrap
@@ -17,11 +16,10 @@ import tsec.cipher.symmetric.{AADEncryptor, IvGen}
 import tsec.common.SecureRandomId
 import uz.scala.messenger.domain.Credentials
 import uz.scala.messenger.domain.custom.refinements.EmailAddress
-import uz.scala.messenger.implicits.{PartOps, ResponseIdOps}
+import uz.scala.messenger.implicits.PartOps
 import uz.scala.messenger.security.AuthHelper._
 import uz.scala.messenger.services.IdentityService
 import uz.scala.messenger.services.redis.RedisClient
-import uz.scala.messenger.utils.Error
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
@@ -46,7 +44,6 @@ abstract class AuthService[F[_]: Sync, U] {
 
   def discard(authenticator: AuthEncryptedCookie[AES128GCM, EmailAddress])(implicit dsl: Http4sDsl[F]): F[Response[F]]
 
-  def get(emailAddress: EmailAddress): OptionT[F, U]
 }
 
 object AuthService {
@@ -109,15 +106,10 @@ object AuthService {
     private[this] def verify(Credentials: Credentials): F[Boolean] =
       identityService.credentialStore.isAuthenticated(RawCredentials(Credentials.email, Credentials.password))
 
-    private[this] def createSession(credentials: Credentials)(implicit dsl: Http4sDsl[F]): F[Response[F]] = {
-      import dsl._
+    private[this] def createSession(credentials: Credentials): F[Response[F]] = {
       auth.authenticator
         .create(credentials.email)
-        .flatMap { cookie =>
-          SeeOther(Location(Uri.unsafeFromString("/"))).map { response =>
-            auth.authenticator.embed(response, cookie)
-          }
-        }
+        .map(auth.authenticator.embed(Response(Status.NoContent), _))
     }
 
     override def authorizer(request: Multipart[F])(implicit dsl: Http4sDsl[F]): F[Response[F]] = {
@@ -129,9 +121,7 @@ object AuthService {
           if (isAuthed)
             createSession(credentials)
           else
-            SeeOther(Location(Uri.unsafeFromString("/"))).map {
-              _.flashing(Error, "Email or password isn't correct!")
-            }
+            BadRequest("Email or password doesn't match!")
       } yield response
     }
 
@@ -144,9 +134,7 @@ object AuthService {
           if (isAuthed)
             createSession(credentials)
           else
-            SeeOther(Location(Uri.unsafeFromString("/"))).map {
-              _.flashing(Error, "Email or password isn't correct!")
-            }
+            BadRequest("Email or password doesn't match!")
       } yield response
     }
 
@@ -167,8 +155,5 @@ object AuthService {
         SeeOther(Location(Uri.unsafeFromString("/")))
       }
     }
-
-    override def get(emailAddress: EmailAddress): OptionT[F, U] =
-      identityService.get(emailAddress)
   }
 }

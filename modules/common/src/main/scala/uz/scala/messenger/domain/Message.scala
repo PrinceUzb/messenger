@@ -5,13 +5,15 @@ import io.circe.refined._
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 
+import java.time.LocalDateTime
 import java.util.UUID
 
 case class Message(
   id: UUID,
   to: UUID,
   from: UUID,
-  text: NonEmptyString
+  text: NonEmptyString,
+  created_at: LocalDateTime
 )
 
 object Message {

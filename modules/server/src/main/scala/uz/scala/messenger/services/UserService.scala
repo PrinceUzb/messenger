@@ -7,6 +7,7 @@ import org.typelevel.log4cats.Logger
 
 trait UserService[F[_]] {
   def create(userData: UserData): F[User]
+  def getAll: F[List[User]]
 }
 
 object LiveUserService {
@@ -25,4 +26,6 @@ final class LiveUserService[F[_]: Logger](
 
   override def create(userData: UserData): F[User] =
     userAlgebra.create(userData)
+
+  override def getAll: F[List[User]] = userAlgebra.getAll
 }

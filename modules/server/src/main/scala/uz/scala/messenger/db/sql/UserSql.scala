@@ -36,4 +36,7 @@ object UserSql {
   val selectPass: Query[EmailAddress, String] =
     sql"""SELECT password_hash FROM users WHERE email = $emailCodec """.query(varchar)
 
+  val selectAll: Query[Void, User] =
+    sql"""SELECT * FROM users""".query(dec)
+
 }

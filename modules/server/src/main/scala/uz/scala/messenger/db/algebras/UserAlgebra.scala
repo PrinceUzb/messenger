@@ -2,7 +2,6 @@ package uz.scala.messenger.db.algebras
 
 import cats.effect.{Resource, Sync}
 import cats.implicits._
-import eu.timepit.refined.auto.autoUnwrap
 import skunk.Session
 import skunk.implicits.toIdOps
 import tsec.passwordhashers.PasswordHash
@@ -16,6 +15,7 @@ trait UserAlgebra[F[_]] extends IdentityProvider[F, User] {
   def findByEmail(email: EmailAddress): F[Option[User]]
   def retrievePass(email: EmailAddress): F[Option[PasswordHash[SCrypt]]]
   def create(user: UserData): F[User]
+  def getAll: F[List[User]]
 }
 
 object UserAlgebra {
@@ -37,7 +37,7 @@ object UserAlgebra {
       GenUUID[F].make.flatMap { uuid =>
         prepQueryUnique(insert, uuid ~ userData)
       }
-
+    override def getAll: F[List[User]] = prepAllQuery(selectAll)
   }
 
 }

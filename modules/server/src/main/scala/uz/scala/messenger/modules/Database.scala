@@ -15,21 +15,18 @@ trait Database[F[_]] {
 }
 
 object Database {
-  def apply[F[_]: Async: Console](config: DBConfig)(implicit F: Sync[F]): F[Database[F]] =
-    Session
-      .pooled[F](
+  def apply[F[_]: Async: Console](config: DBConfig)(implicit F: Sync[F]): F[Database[F]] = {
+    implicit val session: Resource[F, Session[F]] = Session
+      .single[F](
         host = config.host,
         port = config.port,
         database = config.database,
         user = config.user,
         password = Some(config.password),
-        max = config.poolSize,
         strategy = Typer.Strategy.SearchPath
       )
-      .use { implicit session =>
-        F.delay(new LiveDatabase[F])
-      }
-
+    F.delay(new LiveDatabase[F])
+  }
   final class LiveDatabase[F[_]: Async: Console](implicit
     session: Resource[F, Session[F]]
   ) extends Database[F] {

@@ -30,6 +30,16 @@ abstract class SkunkHelper[F[_]: Sync] {
       _.stream(args, 1024).compile.toList
     }
 
+
+  def prepAllQuery[B](
+    query: Query[Void, B]
+  )(implicit
+    sessionPool: Resource[F, Session[F]]
+  ): F[List[B]] =
+    sessionPool.use { session =>
+      session.execute(query)
+    }
+
   def prepStreamQuery[A, B](
     query: Query[A, B],
     args: A
