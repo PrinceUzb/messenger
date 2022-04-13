@@ -23,4 +23,10 @@ object MessageSql {
   val insert: Query[UUID ~ UUID ~ SendMessage, Message] =
     sql"""INSERT INTO messages VALUES ($enc) RETURNING *""".query(dec)
 
+  val selectAll: Query[UUID ~ UUID, Message] =
+    sql"""SELECT * FROM messages WHERE ("to" = $uuid AND "from" = $uuid) OR ("to" = $uuid AND "from" = $uuid) ORDER BY created_at DESC""".query(dec)
+      .contramap[UUID ~ UUID] { case ownerId ~ userId =>
+        ownerId ~ userId ~ userId ~ ownerId
+      }
+
 }

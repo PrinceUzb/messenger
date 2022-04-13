@@ -50,16 +50,7 @@ object AuthService {
   def apply[F[_]: Async, U](
     identityService: IdentityService[F, U],
     key: SecretKey[AES128GCM]
-  )(implicit F: Sync[F], redisClient: RedisClient[F]): F[AuthService[F, U]] =
-    F.delay(
-      new LiveAuthService[F, U](identityService, key)
-    )
-
-  final class LiveAuthService[F[_]: Async, U](
-    identityService: IdentityService[F, U],
-    key: SecretKey[AES128GCM]
-  )(implicit F: Sync[F], redisClient: RedisClient[F])
-      extends AuthService[F, U] {
+  )(implicit F: Sync[F], redisClient: RedisClient[F]): AuthService[F, U] = new AuthService[F, U] {
 
     implicit val encryptor: AADEncryptor[F, AES128GCM, SecretKey] = AES128GCM.genEncryptor[F]
     implicit val gcmStrategy: IvGen[F, AES128GCM]                 = AES128GCM.defaultIvStrategy[F]

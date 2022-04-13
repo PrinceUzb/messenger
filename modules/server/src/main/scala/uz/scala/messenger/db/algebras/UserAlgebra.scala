@@ -19,14 +19,8 @@ trait UserAlgebra[F[_]] extends IdentityProvider[F, User] {
 }
 
 object UserAlgebra {
-  def apply[F[_]](implicit F: Sync[F], session: Resource[F, Session[F]]): F[UserAlgebra[F]] =
-    F.delay(
-      new LiveUserAlgebra[F]
-    )
-
-  final class LiveUserAlgebra[F[_]](implicit F: Sync[F], session: Resource[F, Session[F]])
-      extends SkunkHelper[F]
-      with UserAlgebra[F] {
+  def apply[F[_]: Sync](implicit session: Resource[F, Session[F]]): UserAlgebra[F] = new UserAlgebra[F]
+    with SkunkHelper[F] {
 
     override def findByEmail(email: EmailAddress): F[Option[User]] = prepOptQuery(selectByEmail, email)
 

@@ -37,10 +37,10 @@ class IndexPage extends AjaxImplicits {
   type OnInputChange = SyntheticEvent[HTMLInputElement] => Callback
 
   class Backend($ : Scala.BackendScope[Unit, State]) {
-    def messageWS(userID: UUID): Callback = {
-      val ws: WebSocket = new WebSocket("ws://localhost:9000/message/" + userID)
+    def messageWS: Callback = {
+      val ws: WebSocket = new WebSocket("ws://localhost:9000/message")
       $.modState(_.copy(ws = Option(ws))).map { _ =>
-        ws.onclose = _ => setTimeout(3000)(messageWS(userID).runNow())
+        ws.onclose = _ => setTimeout(3000)(messageWS.runNow())
         ws.onmessage = { e =>
           val message = e.data.toString.as[Message]
           $.modState { s =>
@@ -56,7 +56,12 @@ class IndexPage extends AjaxImplicits {
     }
 
     def onOpenChat(user: User): Callback =
-      $.modState(_.copy(selectedUser = Some(user)))
+      get("/message/" + user.id)
+        .fail(onError)
+        .done[List[Message]] { messages =>
+          $.modState(s => s.copy(selectedUser = Some(user), chats = s.chats.updated(user.id, messages)))
+        }
+        .asCallback
 
     def onChangeText(userId: UUID): OnInputChange = e =>
       $.modState(s => s.copy(sendTexts = s.sendTexts.updated(userId, e.target.value)))
@@ -71,7 +76,7 @@ class IndexPage extends AjaxImplicits {
             ws.send(SendMessage(userID, NonEmptyString.unsafeFrom(text)).toJson)
             $.modState { s =>
               val histories = s.chats.getOrElse(userID, List.empty)
-              s.copy(chats = s.chats.updated(userID, message +: histories),sendTexts = s.sendTexts.updated(userID, ""))
+              s.copy(chats = s.chats.updated(userID, message +: histories), sendTexts = s.sendTexts.updated(userID, ""))
             }
           }
         }
@@ -88,7 +93,7 @@ class IndexPage extends AjaxImplicits {
     get("/user")
       .fail(onError)
       .done[User] { user =>
-        $.modState(_.copy(user = Some(user))) >> messageWS(user.id) >> getAllUser
+        $.modState(_.copy(user = Some(user))) >> messageWS >> getAllUser
       }
       .asCallback
       .runNow()

@@ -1,24 +1,28 @@
 package uz.scala.messenger
 
-import cats.effect.{Async, Sync}
+import cats.effect.{Async, Resource, Spawn, Sync}
 import cats.implicits._
 import eu.timepit.refined.auto.autoUnwrap
-import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.parser.decode
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Encoder, Printer}
+import org.http4s.MediaType
 import org.http4s.headers.`Content-Type`
 import org.http4s.multipart.Part
-import org.http4s.{MediaType, Response}
 import tsec.passwordhashers.PasswordHash
 import tsec.passwordhashers.jca.SCrypt
 import uz.scala.messenger.domain.custom.exception.MultipartDecodeError
 import uz.scala.messenger.domain.custom.refinements.Password
 import uz.scala.messenger.domain.custom.utils.MapConvert
 import uz.scala.messenger.domain.custom.utils.MapConvert.ValidationResult
-import uz.scala.messenger.utils.AlertLevel
 
 package object implicits {
+
+  implicit class ResourceOps[F[_], +A](res: Resource[F, A]) {
+    def useForever_[B](implicit F: Spawn[F]): F[B] =
+      res.use[B](_ => F.never)
+
+  }
 
   implicit class PasswordOps(password: Password) {
     def toHash[F[_]: Sync]: F[PasswordHash[SCrypt]] = SCrypt.hashpw[F](password)
@@ -64,10 +68,4 @@ package object implicits {
 
     def toJson(implicit encoder: Encoder[A]): String = obj.asJson.printWith(printer)
   }
-
-  implicit class ResponseIdOps[F[_]](r: Response[F]) {
-    def flashing(alert: AlertLevel, body: String): Response[F] =
-      r.addCookie(FlashSetting(alert, NonEmptyString.unsafeFrom(body)).toCookie)
-  }
-
 }

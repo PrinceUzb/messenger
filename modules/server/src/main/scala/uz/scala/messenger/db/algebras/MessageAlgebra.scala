@@ -12,22 +12,20 @@ import java.util.UUID
 
 trait MessageAlgebra[F[_]] {
   def create(from: UUID, sendMessage: SendMessage): F[Message]
+  def getAll(ownerId: UUID, userId: UUID): F[List[Message]]
 }
 
 object MessageAlgebra {
-  def apply[F[_]](implicit F: Sync[F], session: Resource[F, Session[F]]): F[MessageAlgebra[F]] =
-    F.delay(
-      new LiveMessageAlgebra[F]
-    )
-
-  final class LiveMessageAlgebra[F[_]](implicit F: Sync[F], session: Resource[F, Session[F]])
-      extends SkunkHelper[F]
-      with MessageAlgebra[F] {
+  def apply[F[_]: Sync](implicit session: Resource[F, Session[F]]): MessageAlgebra[F] = new MessageAlgebra[F]
+    with SkunkHelper[F] {
 
     override def create(from: UUID, sendMessage: SendMessage): F[Message] =
       GenUUID[F].make.flatMap { uuid =>
         session.use(_.prepare(insert).use(_.unique(uuid ~ from ~ sendMessage)))
       }
+
+    override def getAll(ownerId: UUID, userId: UUID): F[List[Message]] =
+      prepListQuery(selectAll, ownerId ~ userId)
 
   }
 

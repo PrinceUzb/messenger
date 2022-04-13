@@ -49,14 +49,14 @@ object Dependencies {
     val cirisRefined = ciris("ciris-refined")
 
     val http4sDsl    = http4s("http4s-dsl")
-    val http4sCore   = http4s("http4s-core")
-    val http4sServer = http4s("http4s-blaze-server")
-    val http4sClient = http4s("http4s-blaze-client")
+    val http4sServer = http4s("http4s-ember-server")
+    val http4sClient = http4s("http4s-ember-client")
     val http4sCirce  = http4s("http4s-circe")
     val refinedType  = refined("refined")
     val refinedCats  = refined("refined-cats")
 
     val redis4catsEffects = "dev.profunktor" %% "redis4cats-effects" % Versions.redis4cats
+    val redis4catsLog4cats = "dev.profunktor"   %% "redis4cats-log4cats" % Versions.redis4cats
 
     val tsecHttp4s = "io.github.jmcardon" %% "tsec-http4s" % Versions.tsec
     val cats       = "org.typelevel"      %% "cats-core"   % Versions.cats
@@ -81,7 +81,7 @@ object Dependencies {
 
   val catsLibs = Seq(cats, catsEffect)
 
-  val http4sLibs = Seq(http4sDsl, http4sCore, http4sServer, http4sClient, http4sCirce)
+  val http4sLibs = Seq(http4sDsl, http4sServer, http4sClient, http4sCirce)
 
   val cirisLibs = Seq(cirisRefined, cirisCore)
 
@@ -95,7 +95,8 @@ object Dependencies {
     skunkRefined,
     fs2,
     tsecHttp4s,
-    redis4catsEffects
+    redis4catsEffects,
+    redis4catsLog4cats
   )
 
   val testLibraries = Seq(

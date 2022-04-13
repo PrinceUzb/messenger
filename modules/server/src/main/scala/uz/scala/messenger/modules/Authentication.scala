@@ -5,19 +5,16 @@ import cats.implicits._
 import uz.scala.messenger.db.algebras.{IdentityProvider, UserAlgebra}
 import uz.scala.messenger.domain.User
 import uz.scala.messenger.security.AuthService
-import uz.scala.messenger.services.LiveIdentityService
+import uz.scala.messenger.services.IdentityService
 import uz.scala.messenger.services.redis.RedisClient
 
 object Authentication {
   private[this] def makeAuthService[F[_]: Async: Sync, U](
     identityProvider: IdentityProvider[F, U]
-  )(implicit redisClient: RedisClient[F]): F[AuthService[F, U]] = {
-    for {
-      identityService <- LiveIdentityService[F, U](identityProvider)
-      key <- redisClient.secretKeyStore.getSecretKey
-      authService <- AuthService[F, U](identityService, key)
-    } yield authService
-  }
+  )(implicit redisClient: RedisClient[F]): F[AuthService[F, U]] =
+    redisClient.secretKeyStore.getSecretKey.map { key =>
+      AuthService[F, U](IdentityService[F, U](identityProvider), key)
+    }
 
   def apply[F[_]: Async](
     userProvider: UserAlgebra[F]

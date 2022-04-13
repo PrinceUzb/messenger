@@ -1,7 +1,6 @@
 package uz.scala.messenger.modules
 
 import cats.effect._
-import cats.effect.std.Queue
 import fs2.concurrent.Topic
 import org.http4s.server.staticcontent.webjarServiceBuilder
 import org.http4s.server.websocket.WebSocketBuilder2
@@ -38,7 +37,7 @@ final class HttpApi[F[_]: Async: Logger] private (
   private[this] val rootRoutes: HttpRoutes[F] = RootRoutes[F].routes
   private[this] val userRoutes: HttpRoutes[F] = UserRoutes[F](program.userService).routes
   private[this] val messageRoutes: WebSocketBuilder2[F] => HttpRoutes[F] = wsb =>
-    MessageRoutes[F](program.messageSender).routes(wsb)
+    MessageRoutes[F](program.messageSender, program.messages).routes(wsb)
   private[this] val webjars: HttpRoutes[F] = webjarServiceBuilder[F].toRoutes
 
   private[this] val loggedRoutes: HttpRoutes[F] => HttpRoutes[F] = http =>

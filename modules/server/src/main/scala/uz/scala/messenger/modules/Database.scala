@@ -10,28 +10,14 @@ import uz.scala.messenger.config.DBConfig
 import uz.scala.messenger.db.algebras.{MessageAlgebra, UserAlgebra}
 
 trait Database[F[_]] {
-  val user: F[UserAlgebra[F]]
-  val message: F[MessageAlgebra[F]]
+  val user: UserAlgebra[F]
+  val message: MessageAlgebra[F]
 }
 
 object Database {
-  def apply[F[_]: Async: Console](config: DBConfig)(implicit F: Sync[F]): F[Database[F]] = {
-    implicit val session: Resource[F, Session[F]] = Session
-      .single[F](
-        host = config.host,
-        port = config.port,
-        database = config.database,
-        user = config.user,
-        password = Some(config.password),
-        strategy = Typer.Strategy.SearchPath
-      )
-    F.delay(new LiveDatabase[F])
-  }
-  final class LiveDatabase[F[_]: Async: Console](implicit
-    session: Resource[F, Session[F]]
-  ) extends Database[F] {
-
-    override val user: F[UserAlgebra[F]]       = UserAlgebra[F]
-    override val message: F[MessageAlgebra[F]] = MessageAlgebra[F]
+  def apply[F[_]: Async: Console](session: Resource[F, Session[F]]): Database[F] = new Database[F] {
+    implicit val ev: Resource[F, Session[F]]  = session
+    override val user: UserAlgebra[F]       = UserAlgebra[F]
+    override val message: MessageAlgebra[F] = MessageAlgebra[F]
   }
 }

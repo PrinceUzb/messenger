@@ -12,13 +12,7 @@ trait MessageSender[F[_]] {
 }
 
 object MessageSender {
-  def apply[F[_]: Sync](messageAlgebra: MessageAlgebra[F], queue: Queue[F, Message]): F[MessageSender[F]] =
-    Sync[F].delay(new MessageSenderImpl[F](messageAlgebra, queue))
-
-  private[this] class MessageSenderImpl[F[_]: Sync](messageAlgebra: MessageAlgebra[F], queue: Queue[F, Message])
-      extends MessageSender[F] {
-    override def send(form: UUID, sendMessage: SendMessage): fs2.Stream[F, Unit] =
+  def apply[F[_]: Sync](messageAlgebra: MessageAlgebra[F], queue: Queue[F, Message]): MessageSender[F] =
+    (form: UUID, sendMessage: SendMessage) =>
       fs2.Stream.eval(messageAlgebra.create(form, sendMessage)).enqueueUnterminated(queue)
-
-  }
 }

@@ -1,11 +1,11 @@
 package uz.scala.messenger
 
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.{IO, IOApp}
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-object Application extends IOApp {
+object Application extends IOApp.Simple {
   implicit val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
 
-  override def run(args: List[String]): IO[ExitCode] = MessengerServer.run[IO]
+  override def run: IO[Unit] = MessengerServer.run[IO]
 }
