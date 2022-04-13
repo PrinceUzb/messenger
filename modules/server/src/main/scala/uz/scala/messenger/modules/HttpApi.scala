@@ -1,6 +1,7 @@
 package uz.scala.messenger.modules
 
 import cats.effect._
+import cats.effect.std.Queue
 import fs2.concurrent.Topic
 import org.http4s.server.staticcontent.webjarServiceBuilder
 import org.http4s.server.websocket.WebSocketBuilder2
@@ -16,23 +17,26 @@ object HttpApi {
   def apply[F[_]: Async: Logger](
     program: MessengerProgram[F],
     topic: Topic[F, Message],
-    logConfig: LogConfig
+    logConfig: LogConfig,
+    queue: Queue[F, Message]
   )(implicit F: Sync[F]): F[HttpApi[F]] =
     F.delay(
-      new HttpApi[F](program, topic, logConfig)
+      new HttpApi[F](program, topic, logConfig, queue)
     )
 }
 
 final class HttpApi[F[_]: Async: Logger] private (
   program: MessengerProgram[F],
   topic: Topic[F, Message],
-  logConfig: LogConfig
+  logConfig: LogConfig,
+  queue: Queue[F, Message]
 ) {
   private[this] val root: String        = "/"
   private[this] val webjarsPath: String = "/webjars"
 
   implicit val authUser: AuthService[F, User] = program.auth.user
   implicit val mt: Topic[F, Message]          = topic
+  implicit val mq: Queue[F, Message]          = queue
 
   private[this] val rootRoutes: HttpRoutes[F] = RootRoutes[F].routes
   private[this] val userRoutes: HttpRoutes[F] = UserRoutes[F](program.userService).routes

@@ -20,15 +20,16 @@ import uz.scala.messenger.implicits._
 import uz.scala.messenger.modules._
 import uz.scala.messenger.resources.AppResources
 
+import scala.concurrent.duration.DurationInt
+
 object MessengerServer {
 
   private def showEmberBanner[F[_]: Logger](s: Server): F[Unit] =
     Logger[F].info(s"\n${Banner.mkString("\n")}\nHTTP Server started at ${s.address}")
 
   private def server[F[_]: Async: Logger](
-    conf: HttpServerConfig,
-    httpApp: WebSocketBuilder2[F] => HttpApp[F]
-  ): Resource[F, Server] =
+    conf: HttpServerConfig
+  )(httpApp: WebSocketBuilder2[F] => HttpApp[F]): Resource[F, Server] =
     EmberServerBuilder
       .default[F]
       .withHostOption(Host.fromString(conf.host))
@@ -44,16 +45,14 @@ object MessengerServer {
           AppResources[F](conf)
             .evalMap { res =>
               for {
-                queue <- Queue.unbounded[F, Message]
-                topic <- Topic[F, Message]
-                wsStream = fs2.Stream.fromQueueUnterminated(queue).through(topic.publish)
+                queue    <- Queue.unbounded[F, Message]
+                topic    <- Topic[F, Message]
                 programs <- MessengerProgram[F](Database[F](res.postgres), res.redis, queue)
-                httpAPI  <- HttpApi[F](programs, topic, conf.logConfig)
-              } yield wsStream -> httpAPI.httpApp
+                httpAPI  <- HttpApi[F](programs, topic, conf.logConfig, queue)
+              } yield httpAPI.httpApp
             }
-            .flatMap { case (ws, httpApp) =>
-              server[F](conf.serverConfig, httpApp).evalTap(_ => ws.compile.drain)
-            }.useForever_[Unit]
+            .flatMap(server[F](conf.serverConfig))
+            .useForever_[Unit]
         }
     }
 }
