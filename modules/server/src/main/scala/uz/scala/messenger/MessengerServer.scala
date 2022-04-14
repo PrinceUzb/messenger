@@ -3,13 +3,12 @@ package uz.scala.messenger
 import cats.effect._
 import cats.effect.std.{Console, Queue, Supervisor}
 import cats.implicits._
-import com.comcast.ip4s.{Host, Port}
 import dev.profunktor.redis4cats.log4cats._
 import eu.timepit.refined.auto.autoUnwrap
 import fs2.concurrent.Topic
 import fs2.io.net.Network
 import org.http4s.HttpApp
-import org.http4s.ember.server.EmberServerBuilder
+import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Server
 import org.http4s.server.defaults.Banner
 import org.http4s.server.websocket.WebSocketBuilder2
@@ -20,8 +19,6 @@ import uz.scala.messenger.implicits._
 import uz.scala.messenger.modules._
 import uz.scala.messenger.resources.AppResources
 
-import scala.concurrent.duration.DurationInt
-
 object MessengerServer {
 
   private def showEmberBanner[F[_]: Logger](s: Server): F[Unit] =
@@ -30,12 +27,10 @@ object MessengerServer {
   private def server[F[_]: Async: Logger](
     conf: HttpServerConfig
   )(httpApp: WebSocketBuilder2[F] => HttpApp[F]): Resource[F, Server] =
-    EmberServerBuilder
-      .default[F]
-      .withHostOption(Host.fromString(conf.host))
-      .withPort(Port.fromString(conf.port.value.toString).getOrElse(throw new IllegalArgumentException))
+    BlazeServerBuilder[F]
+      .bindHttp(conf.port, conf.host)
       .withHttpWebSocketApp(httpApp)
-      .build
+      .resource
       .evalTap(showEmberBanner[F])
 
   def run[F[_]: Async: Console: Logger: Network]: F[Unit] =

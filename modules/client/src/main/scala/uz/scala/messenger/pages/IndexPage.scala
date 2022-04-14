@@ -90,13 +90,13 @@ class IndexPage extends AjaxImplicits {
         }
         .asCallback
 
-    get("/user")
-      .fail(onError)
-      .done[User] { user =>
-        $.modState(_.copy(user = Some(user))) >> messageWS >> getAllUser
-      }
-      .asCallback
-      .runNow()
+    def getUser: Callback =
+      get("/user")
+        .fail(onError)
+        .done[User] { user =>
+          $.modState(_.copy(user = Some(user)))
+        }
+        .asCallback
 
     def openChat(user: User)(implicit state: State): VdomTagOf[Element] =
       <.main(
@@ -174,6 +174,7 @@ class IndexPage extends AjaxImplicits {
       .builder[Unit]
       .initialState(State())
       .renderBackend[Backend]
+      .componentDidMount($ => $.backend.getUser >> $.backend.messageWS >> $.backend.getAllUser)
       .build
 
   def component: Unmounted[Unit, State, Backend] = Component()
