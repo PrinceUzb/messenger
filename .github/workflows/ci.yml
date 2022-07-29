@@ -1,0 +1,40 @@
+name: Scala
+on:
+  pull_request: {}
+  push:
+    branches:
+      - v2
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java:
+          - graalvm11-ce
+    steps:
+      - uses: actions/checkout@v2.3.2
+
+      - name: "Cache for sbt & coursier ♨️"
+        uses: coursier/cache-action@v4.1
+
+      - name: "Install Nix ❄️"
+        uses: cachix/install-nix-action@v13
+
+      - name: "Starting up Redis 🐳"
+        run: nix-shell --argstr jdk "${{ matrix.java }}" --run "cd app; bash redis.sh"
+
+      - name: "Starting up S3 🐳"
+        run: nix-shell --argstr jdk "${{ matrix.java }}" --run "cd app; bash s3.sh"
+
+      - name: "Install Cachix ❄️"
+        uses: cachix/cachix-action@v10
+        with:
+          name: http4s-server
+          signingKey: "${{ secrets.CACHIX_SIGNING_KEY }}"
+
+      - name: "Testing 🏝"
+        run: nix-shell --argstr jdk "${{ matrix.java }}" --run "bash test.sh"
+
+      - name: "Testing IT 🌐"
+        run: nix-shell --argstr jdk "${{ matrix.java }}" --run "bash it_test.sh;"

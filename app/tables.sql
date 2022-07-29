@@ -1,0 +1,9 @@
+CREATE TYPE STATUS AS ENUM ('online', 'offline');
+
+CREATE TABLE IF NOT EXISTS users (
+  id UUID PRIMARY KEY,
+  username VARCHAR NOT NULL,
+  phone VARCHAR UNIQUE NOT NULL,
+  status STATUS NOT NULL DEFAULT 'offline',
+  password VARCHAR NOT NULL,
+);

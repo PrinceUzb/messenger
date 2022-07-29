@@ -1,61 +1,69 @@
 import Dependencies._
 
-ThisBuild / organization := "uz.scala"
-ThisBuild / scalaVersion := "2.13.8"
-ThisBuild / version      := "1.0"
+lazy val projectSettings = Seq(
+  version      := "1.0",
+  scalaVersion := "2.13.8",
+  organization := "Scala.uz"
+)
 
-lazy val common = crossProject(JSPlatform, JVMPlatform)
-  .crossType(CrossType.Pure)
-  .in(file("modules/common"))
-  .settings(libraryDependencies ++= commonPart)
-
-lazy val server = (project in file("modules/server"))
+lazy val root = project
+  .in(file("."))
+  .settings(projectSettings: _*)
   .settings(
-    name := "messenger",
-    libraryDependencies ++= coreLibraries
+    name := "messenger"
+  )
+  .aggregate(server, tests)
+
+lazy val server = project
+  .in(file("modules/server"))
+  .enablePlugins(DockerPlugin)
+  .enablePlugins(AshScriptPlugin)
+  .settings(projectSettings: _*)
+  .settings(
+    name              := "messenger",
+    scalafmtOnCompile := true,
+    libraryDependencies ++= coreLibraries,
+    scalacOptions ++= CompilerOptions.cOptions,
+    Test / compile / coverageEnabled    := true,
+    Compile / compile / coverageEnabled := false
   )
   .settings(
-    scalaJSProjects         := Seq(client),
-    Assets / pipelineStages := Seq(scalaJSPipeline),
-    pipelineStages          := Seq(digest, gzip),
-    Compile / compile       := ((Compile / compile) dependsOn scalaJSPipeline).value)
-  .enablePlugins(WebScalaJSBundlerPlugin)
-  .dependsOn(common.jvm)
+    Docker / packageName := "messenger",
+    dockerBaseImage      := "openjdk:11-jre-slim-buster",
+    dockerUpdateLatest   := true
+  )
 
 lazy val tests = project
   .in(file("modules/tests"))
   .configs(IntegrationTest)
+  .settings(projectSettings: _*)
   .settings(
     name := "messenger-test-suite",
+    testFrameworks += new TestFramework("weaver.framework.CatsEffect"),
     Defaults.itSettings,
-    libraryDependencies ++= testLibraries ++ testLibraries.map(_ % Test)
+    scalacOptions ++= CompilerOptions.cOptions,
+    IntegrationTest / parallelExecution  := false,
+    IntegrationTest / testForkedParallel := false,
+    libraryDependencies ++= testLibraries,
+    scalacOptions ++= CompilerOptions.cOptions
   )
   .dependsOn(server)
 
-lazy val client = (project in file("modules/client"))
-  .settings(
-    name := "client",
-    scalaJSUseMainModuleInitializer := true,
-    resolvers += Resolver.sonatypeRepo("releases"),
-    libraryDependencies ++= Seq(
-      "io.github.chronoscala"             %%% "chronoscala"   % "2.0.2",
-      "com.github.japgolly.scalajs-react" %%% "core"          % Versions.scalaJsReact,
-      "com.github.japgolly.scalajs-react" %%% "extra"         % Versions.scalaJsReact,
-      "com.github.japgolly.scalacss"      %%% "ext-react"     % Versions.scalaCss,
-      "io.circe"                          %%% "circe-core"    % Versions.circe,
-      "io.circe"                          %%% "circe-parser"  % Versions.circe,
-      "io.circe"                          %%% "circe-generic" % Versions.circe,
-      "io.circe"                          %%% "circe-refined" % Versions.circe,
-      "eu.timepit"                        %%% "refined"       % Versions.refined
-    ),
-    webpackEmitSourceMaps := false,
-    Compile / npmDependencies ++= Seq(
-      "react" -> Versions.reactJs,
-      "react-dom" -> Versions.reactJs
-    )
-  )
-  .enablePlugins(ScalaJSBundlerPlugin)
-  .dependsOn(common.js)
+val runItTests = inputKey[Unit]("Runs It tests")
+val runTests   = inputKey[Unit]("Runs tests")
+val runServer  = inputKey[Unit]("Runs server")
 
-lazy val messenger = (project in file(".")).aggregate(server, tests)
+runServer := {
+  (server / Compile / run).evaluated
+}
 
+runTests := {
+  (tests / Test / test).value
+}
+
+runItTests := {
+  (tests / IntegrationTest / test).value
+}
+
+Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
+Global / onLoad := (Global / onLoad).value.andThen(state => "project server" :: state)

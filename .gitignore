@@ -1,9 +1,5 @@
 # Project exclude paths
-/modules/client/target/
-/modules/client/target/scala-2.13/classes/
-/modules/server/target/
-/modules/server/target/scala-2.13/classes/
-/modules/tests/target/streams/
-/project/project/target/
-/project/target/
-/target/
+target
+.idea
+.bsp
+local_env.sh

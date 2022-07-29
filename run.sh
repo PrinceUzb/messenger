@@ -1,4 +1,5 @@
 #!/bin/bash
 
-source docker/env.sh
-sbt -mem 3000 "project server" ~reStart
+source env.sh
+#sbt -mem 3000 "runServer"
+sbt -mem 3000 ~reStart

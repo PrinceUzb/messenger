@@ -1,8 +1,12 @@
 package uz.scala.messenger.config
 
+import uz.scala.messenger.domain.AppEnv
+
 case class AppConfig(
-  dbConfig: DBConfig,
-  logConfig: LogConfig,
-  serverConfig: HttpServerConfig,
-  redisConfig: RedisConfig
-)
+    env: AppEnv,
+    jwtConfig: JwtConfig,
+    dbConfig: DBConfig,
+    redis: RedisConfig,
+    serverConfig: HttpServerConfig,
+    logConfig: LogConfig,
+  )

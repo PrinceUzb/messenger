@@ -1,14 +1,15 @@
 package uz.scala.messenger.config
 
-import eu.timepit.refined.types.net.UserPortNumber
+import ciris.Secret
+import eu.timepit.refined.types.net.NonSystemPortNumber
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 
 case class DBConfig(
-  host: NonEmptyString,
-  port: UserPortNumber,
-  user: NonEmptyString,
-  password: NonEmptyString,
-  database: NonEmptyString,
-  poolSize: PosInt
-)
+    host: NonEmptyString,
+    port: NonSystemPortNumber,
+    user: NonEmptyString,
+    password: Secret[NonEmptyString],
+    database: NonEmptyString,
+    poolSize: PosInt,
+  )

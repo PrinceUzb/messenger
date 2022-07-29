@@ -1,56 +1,80 @@
 package uz.scala.messenger.modules
 
+import cats.data.OptionT
 import cats.effect._
-import cats.effect.std.Queue
-import fs2.concurrent.Topic
-import org.http4s.server.staticcontent.webjarServiceBuilder
-import org.http4s.server.websocket.WebSocketBuilder2
-import org.http4s.server.{Router, middleware}
-import org.http4s.{HttpApp, HttpRoutes}
+import cats.syntax.all._
+import dev.profunktor.auth.JwtAuthMiddleware
+import dev.profunktor.auth.jwt.JwtToken
+import org.http4s._
+import org.http4s.implicits._
+import org.http4s.server.Router
+import org.http4s.server.middleware._
 import org.typelevel.log4cats.Logger
+import pdi.jwt.JwtClaim
 import uz.scala.messenger.config.LogConfig
-import uz.scala.messenger.domain.{Message, User}
+import uz.scala.messenger.domain.User
+import uz.scala.messenger.implicits.CirceDecoderOps
 import uz.scala.messenger.routes._
-import uz.scala.messenger.security.AuthService
+import uz.scala.messenger.services.redis.RedisClient
+
+import scala.concurrent.duration.DurationInt
 
 object HttpApi {
   def apply[F[_]: Async: Logger](
-    program: MessengerProgram[F],
-    topic: Topic[F, Message],
-    logConfig: LogConfig
-  )(implicit F: Sync[F]): F[HttpApi[F]] =
-    F.delay(
-      new HttpApi[F](program, topic, logConfig)
-    )
+      security: Security[F],
+      services: Services[F],
+      redis: RedisClient[F],
+      logConfig: LogConfig,
+    ): HttpApi[F] =
+    new HttpApi[F](security, services, redis, logConfig)
 }
 
 final class HttpApi[F[_]: Async: Logger] private (
-  program: MessengerProgram[F],
-  topic: Topic[F, Message],
-  logConfig: LogConfig
-) {
-  private[this] val root: String        = "/"
-  private[this] val webjarsPath: String = "/webjars"
+    security: Security[F],
+    services: Services[F],
+    redis: RedisClient[F],
+    logConfig: LogConfig,
+  ) {
+  private[this] val baseURL: String = "/"
 
-  implicit val authUser: AuthService[F, User] = program.auth.user
-  implicit val mt: Topic[F, Message]          = topic
+  def findUser(token: JwtToken): JwtClaim => F[Option[User]] = _ =>
+    OptionT(redis.get(token.value))
+      .map(_.as[User])
+      .value
 
-  private[this] val rootRoutes: HttpRoutes[F] = RootRoutes[F].routes
-  private[this] val userRoutes: HttpRoutes[F] = UserRoutes[F](program.userService).routes
-  private[this] val messageRoutes: WebSocketBuilder2[F] => HttpRoutes[F] = wsb =>
-    MessageRoutes[F](program.messageSender).routes(wsb)
-  private[this] val webjars: HttpRoutes[F] = webjarServiceBuilder[F].toRoutes
+  private[this] val usersMiddleware =
+    JwtAuthMiddleware[F, User](security.userJwtAuth.value, findUser)
 
-  private[this] val loggedRoutes: HttpRoutes[F] => HttpRoutes[F] = http =>
-    middleware.Logger.httpRoutes(logConfig.httpHeader, logConfig.httpBody)(http)
+  private[this] val authRoutes = AuthRoutes[F](security.auth).routes(usersMiddleware)
+  private[this] val userRoutes =
+    new UserRoutes[F](services.users).routes(usersMiddleware)
 
-  val httpApp: WebSocketBuilder2[F] => HttpApp[F] = wsb =>
-    loggedRoutes(
-      Router(
-        webjarsPath              -> webjars,
-        UserRoutes.prefixPath    -> userRoutes,
-        MessageRoutes.prefixPath -> messageRoutes(wsb),
-        root                     -> rootRoutes,
-      )
-    ).orNotFound
+  private[this] val openRoutes: HttpRoutes[F] =
+    userRoutes <+> authRoutes
+
+  private[this] val routes: HttpRoutes[F] = Router(
+    baseURL -> openRoutes
+  )
+
+  private[this] val middleware: HttpRoutes[F] => HttpRoutes[F] = { http: HttpRoutes[F] =>
+    AutoSlash(http)
+  } andThen { http: HttpRoutes[F] =>
+    CORS
+      .policy
+      .withAllowOriginAll
+      .withAllowCredentials(false)
+      .apply(http)
+  } andThen { http: HttpRoutes[F] =>
+    Timeout(60.seconds)(http)
+  }
+
+  def httpLogger: Option[String => F[Unit]] = Option(Logger[F].info(_))
+
+  private[this] val loggers: HttpApp[F] => HttpApp[F] = { http: HttpApp[F] =>
+    RequestLogger.httpApp(logConfig.httpHeader, logConfig.httpBody, logAction = httpLogger)(http)
+  } andThen { http: HttpApp[F] =>
+    ResponseLogger.httpApp(logConfig.httpHeader, logConfig.httpBody, logAction = httpLogger)(http)
+  }
+
+  val httpApp: HttpApp[F] = loggers(middleware(routes).orNotFound)
 }
