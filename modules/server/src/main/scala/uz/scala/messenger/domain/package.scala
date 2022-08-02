@@ -8,7 +8,7 @@ import io.circe.{ Codec, Decoder, Encoder }
 import tsec.passwordhashers.PasswordHash
 import tsec.passwordhashers.jca.SCrypt
 
-import java.time.{ LocalDate, LocalDateTime }
+import java.time.ZonedDateTime
 
 package object domain {
   implicit val tokenEq: Eq[JwtToken] = Eq.by(_.value)
@@ -17,9 +17,7 @@ package object domain {
 
   implicit val tokenCodec: Codec[JwtToken] = deriveCodec
 
-  implicit val javaTimeShow: Show[LocalDateTime] = Show[String].contramap[LocalDateTime](_.toString)
-
-  implicit val javaDateShow: Show[LocalDate] = Show[String].contramap[LocalDate](_.toString)
+  implicit val javaTimeShow: Show[ZonedDateTime] = Show[String].contramap[ZonedDateTime](_.toString)
 
   implicit val passwordHashEncoder: Encoder[PasswordHash[SCrypt]] =
     Encoder.encodeString.contramap(_.toString)

@@ -1,1 +1,1 @@
-[[{},{}],{}]
+[[{"${BASE}/modules/tests/src/it/resources/tables.sql":["${BASE}/modules/tests/target/scala-2.13/it-classes/tables.sql"]},{"${BASE}/modules/tests/target/scala-2.13/it-classes/tables.sql":["${BASE}/modules/tests/src/it/resources/tables.sql"]}],{"${BASE}/modules/tests/src/it/resources/tables.sql":{"file":"file:///home/prince/IdeaProjects/messenger/modules/tests/src/it/resources/tables.sql","lastModified":1659422442142}}]

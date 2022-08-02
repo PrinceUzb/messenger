@@ -12,10 +12,16 @@ import skunk.implicits._
 import tsec.passwordhashers.PasswordHash
 import tsec.passwordhashers.jca.SCrypt
 
+import java.time.ZonedDateTime
+
 package object sql {
   val nes: Codec[NonEmptyString] = varchar.imap[NonEmptyString](NonEmptyString.unsafeFrom)(_.value)
 
   val username: Codec[Username] = nes.imap[Username](Username.apply)(_.value)
+
+  val content: Codec[Content] = nes.imap[Content](Content.apply)(_.value)
+
+  val zonedDateTime: Codec[ZonedDateTime] = timestamptz.imap(_.toZonedDateTime)(_.toOffsetDateTime)
 
   val passwordHash: Codec[PasswordHash[SCrypt]] =
     varchar.imap[PasswordHash[SCrypt]](PasswordHash[SCrypt])(_.toString)

@@ -13,11 +13,14 @@ import tsec.passwordhashers.jca.SCrypt
 import io.circe.refined._
 import eu.timepit.refined.cats._
 
+import java.time.ZonedDateTime
+
 @derive(decoder, encoder, show)
 case class User(
     id: UserId,
     username: Username,
     phone: Tel,
+    createdAt: ZonedDateTime,
     status: UserStatus,
   )
 

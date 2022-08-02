@@ -4,18 +4,27 @@ CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY,
   username VARCHAR NOT NULL,
   phone VARCHAR UNIQUE NOT NULL,
-  created_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
   status STATUS NOT NULL DEFAULT 'offline',
   password VARCHAR NOT NULL,
   UNIQUE(phone)
 );
 
+
+INSERT INTO "users" VALUES ('451d917e-122d-11ed-861d-0242ac120002', 'John Dao', '+998901234567', NOW(), 'offline',
+        '$s0$e0801$5JK3Ogs35C2h5htbXQoeEQ==$N7HgNieSnOajn1FuEB7l4PhC6puBSq+e1E8WUaSJcGY=');
+
+INSERT INTO "users" VALUES ('4b5ab36e-122d-11ed-861d-0242ac120002', 'Jane Dao', '+998991234567', NOW(), 'offline',
+        '$s0$e0801$5JK3Ogs35C2h5htbXQoeEQ==$N7HgNieSnOajn1FuEB7l4PhC6puBSq+e1E8WUaSJcGY=');
+
+
 CREATE TABLE IF NOT EXISTS messages (
   id UUID PRIMARY KEY,
   content VARCHAR NOT NULL,
-  created_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
   sender_id UUID CONSTRAINT fk_sender_id REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE,
   receiver_id UUID CONSTRAINT fk_receiver_id REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE,
   seen BOOLEAN NOT NULL,
   is_deleted BOOLEAN NOT NULL DEFAULT FALSE
 );
+
