@@ -42,7 +42,7 @@ final case class AuthRoutes[F[_]: Monad: JsonDecoder: MonadThrow](
           .recoverWith {
             case phoneInUseError: PhoneInUse =>
               logger.error(s"Phone is already in use. Error: ${phoneInUseError.phone.value}") >>
-                NotAcceptable("Phone is already in use. Please try again with other phone number")
+                BadRequest("Phone is already in use. Please try again with other phone number")
             case error =>
               logger.error(error)("Error occurred creating user!") >>
                 BadRequest("Error occurred creating user. Please try again!")

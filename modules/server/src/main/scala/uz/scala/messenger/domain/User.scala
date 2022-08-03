@@ -43,7 +43,7 @@ object User {
     case object Online extends UserStatus
     case object Offline extends UserStatus
 
-    val statuses: List[UserStatus] = List(Online, Online)
+    val statuses: List[UserStatus] = List(Online, Offline)
 
     def find(value: String): Option[UserStatus] =
       statuses.find(_.value == value.toLowerCase)

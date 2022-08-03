@@ -9,9 +9,13 @@ import org.http4s.server.defaults.Banner
 import org.typelevel.log4cats.Logger
 import uz.scala.messenger.config.HttpServerConfig
 import eu.timepit.refined.auto.autoUnwrap
+import org.http4s.server.websocket.WebSocketBuilder2
 
 trait MkHttpServer[F[_]] {
-  def newEmber(cfg: HttpServerConfig, httpApp: HttpApp[F]): Resource[F, Server]
+  def newEmber(
+      cfg: HttpServerConfig,
+      httpApp: WebSocketBuilder2[F] => HttpApp[F],
+    ): Resource[F, Server]
 }
 
 object MkHttpServer {
@@ -21,12 +25,12 @@ object MkHttpServer {
     Logger[F].info(s"\n${Banner.mkString("\n")}\nHTTP Server started at ${s.address}")
 
   implicit def forAsyncLogger[F[_]: Async: Logger]: MkHttpServer[F] =
-    (cfg: HttpServerConfig, httpApp: HttpApp[F]) =>
+    (cfg: HttpServerConfig, httpApp: WebSocketBuilder2[F] => HttpApp[F]) =>
       EmberServerBuilder
         .default[F]
         .withHostOption(Host.fromString(cfg.host))
         .withPort(Port.fromString(cfg.port.toString()).getOrElse(throw new Exception("")))
-        .withHttpApp(httpApp)
+        .withHttpWebSocketApp(httpApp)
         .build
         .evalTap(showEmberBanner[F])
 }

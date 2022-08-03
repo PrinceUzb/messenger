@@ -26,7 +26,7 @@ package object sql {
   val passwordHash: Codec[PasswordHash[SCrypt]] =
     varchar.imap[PasswordHash[SCrypt]](PasswordHash[SCrypt])(_.toString)
 
-  val status: Codec[UserStatus] = `enum`[UserStatus](_.value, UserStatus.find, Type("role"))
+  val status: Codec[UserStatus] = `enum`[UserStatus](_.value, UserStatus.find, Type("status"))
 
   val tel: Codec[Tel] = varchar.imap[Tel](Tel.unsafeFrom)(_.value)
 

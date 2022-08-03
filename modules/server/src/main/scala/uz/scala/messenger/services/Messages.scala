@@ -1,10 +1,10 @@
 package uz.scala.messenger.services
 
-import cats.implicits._
 import cats.effect.{ Resource, Sync }
+import cats.implicits._
 import skunk.Session
-import uz.scala.messenger.domain.{ ID, Message }
 import uz.scala.messenger.domain.Message.SendMessage
+import uz.scala.messenger.domain.{ ID, Message }
 import uz.scala.messenger.effects.GenUUID
 import uz.scala.messenger.services.sql.MessageSQL
 import uz.scala.messenger.types.{ MessageId, UserId }

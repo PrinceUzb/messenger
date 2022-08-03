@@ -12,7 +12,6 @@ import uz.scala.messenger.domain.custom.exception.PhoneInUse
 import uz.scala.messenger.domain.custom.refinements.Tel
 import uz.scala.messenger.domain.{ ID, User }
 import uz.scala.messenger.effects.GenUUID
-import uz.scala.messenger.services.redis.RedisClient
 import uz.scala.messenger.services.sql.UserSQL._
 import uz.scala.messenger.types.UserId
 
@@ -25,8 +24,7 @@ trait Users[F[_]] {
 
 object Users {
   def apply[F[_]: GenUUID: Sync](
-      redis: RedisClient[F]
-    )(implicit
+      implicit
       session: Resource[F, Session[F]]
     ): Users[F] =
     new Users[F] with SkunkHelper[F] {

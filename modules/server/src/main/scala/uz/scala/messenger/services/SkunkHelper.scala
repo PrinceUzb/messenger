@@ -1,6 +1,6 @@
 package uz.scala.messenger.services
 
-import cats.effect.{ Resource, Sync }
+import cats.effect.{ MonadCancel, Resource, Sync }
 import cats.implicits.toFunctorOps
 import skunk._
 
@@ -11,7 +11,7 @@ trait SkunkHelper[F[_]] {
       action: PreparedQuery[F, A, B] => F[G[B]]
     )(implicit
       session: Resource[F, Session[F]],
-      ev: Sync[F],
+      ev: MonadCancel[F, Throwable],
     ): F[G[B]] =
     session.use {
       _.prepare(query).use(action)
@@ -23,17 +23,17 @@ trait SkunkHelper[F[_]] {
       action: PreparedQuery[F, A, B] => F[B]
     )(implicit
       session: Resource[F, Session[F]],
-      ev: Sync[F],
+      ev: MonadCancel[F, Throwable],
     ): F[B] =
     session.use {
       _.prepare(query).use(action)
     }
 
-  def prepQueryAll[B, G[_]](
+  def prepQueryAll[B](
       query: Query[Void, B]
     )(implicit
       session: Resource[F, Session[F]],
-      ev: Sync[F],
+      ev: MonadCancel[F, Throwable],
     ): F[List[B]] =
     session.use {
       _.execute(query)
@@ -44,7 +44,7 @@ trait SkunkHelper[F[_]] {
       args: A,
     )(implicit
       session: Resource[F, Session[F]],
-      ev: Sync[F],
+      ev: MonadCancel[F, Throwable],
     ): F[B] =
     prepQuery(query) {
       _.unique(args)
@@ -66,7 +66,7 @@ trait SkunkHelper[F[_]] {
       args: A,
     )(implicit
       sessionRes: Resource[F, Session[F]],
-      ev: Sync[F],
+      ev: MonadCancel[F, Throwable],
     ): fs2.Stream[F, B] =
     for {
       session <- fs2.Stream.resource(sessionRes)
@@ -78,7 +78,7 @@ trait SkunkHelper[F[_]] {
       query: Query[Void, B]
     )(implicit
       sessionRes: Resource[F, Session[F]],
-      ev: Sync[F],
+      ev: MonadCancel[F, Throwable],
     ): fs2.Stream[F, B] =
     for {
       session <- fs2.Stream.resource(sessionRes)
@@ -91,7 +91,7 @@ trait SkunkHelper[F[_]] {
       args: A,
     )(implicit
       session: Resource[F, Session[F]],
-      ev: Sync[F],
+      ev: MonadCancel[F, Throwable],
     ): F[Option[B]] =
     prepQueryM(query) {
       _.option(args)
@@ -103,7 +103,7 @@ trait SkunkHelper[F[_]] {
       action: PreparedCommand[F, A] => F[B]
     )(implicit
       session: Resource[F, Session[F]],
-      ev: Sync[F],
+      ev: MonadCancel[F, Throwable],
     ): F[B] =
     session.use {
       _.prepare(cmd).use(action)
@@ -114,7 +114,7 @@ trait SkunkHelper[F[_]] {
       args: A,
     )(implicit
       session: Resource[F, Session[F]],
-      ev: Sync[F],
+      ev: MonadCancel[F, Throwable],
     ): F[Unit] =
     prepCmd(cmd) {
       _.execute(args).void
