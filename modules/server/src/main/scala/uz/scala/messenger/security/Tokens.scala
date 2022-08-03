@@ -3,7 +3,7 @@ package uz.scala.messenger.security
 import cats.Monad
 import cats.syntax.all._
 import uz.scala.messenger.effects.GenUUID
-import uz.scala.messenger.implicits.GenericTypeOps
+import uz.scala.messenger.implicits.genericSyntaxGenericTypeOps
 import uz.scala.messenger.types.{ JwtAccessTokenKeyConfig, TokenExpiration }
 import dev.profunktor.auth.jwt._
 import eu.timepit.refined.auto._

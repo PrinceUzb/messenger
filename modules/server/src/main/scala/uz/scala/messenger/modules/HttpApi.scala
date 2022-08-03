@@ -16,7 +16,7 @@ import org.typelevel.log4cats.Logger
 import pdi.jwt.JwtClaim
 import uz.scala.messenger.config.LogConfig
 import uz.scala.messenger.domain.{ Message, User }
-import uz.scala.messenger.implicits.CirceDecoderOps
+import uz.scala.messenger.implicits.circeSyntaxDecoderOps
 import uz.scala.messenger.routes._
 import uz.scala.messenger.services.redis.RedisClient
 

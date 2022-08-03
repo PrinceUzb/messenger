@@ -2,7 +2,7 @@ package uz.scala.messenger.services.redis
 
 import cats._
 import cats.implicits.toFunctorOps
-import uz.scala.messenger.implicits.GenericTypeOps
+import uz.scala.messenger.implicits.genericSyntaxGenericTypeOps
 import dev.profunktor.redis4cats.RedisCommands
 import io.circe.Encoder
 

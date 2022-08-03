@@ -14,7 +14,7 @@ import org.typelevel.log4cats.Logger
 import uz.scala.messenger.domain.Message.SendMessage
 import uz.scala.messenger.domain.custom.exception.DeliveryFailure
 import uz.scala.messenger.domain.{ Message, User }
-import uz.scala.messenger.implicits.{ CirceDecoderOps, GenericTypeOps }
+import uz.scala.messenger.implicits.{ circeSyntaxDecoderOps, genericSyntaxGenericTypeOps }
 import uz.scala.messenger.services.Messages
 
 object MessageRoutes {

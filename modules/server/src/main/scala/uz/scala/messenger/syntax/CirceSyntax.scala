@@ -1,15 +1,13 @@
-package uz.scala.messenger.implicits
+package uz.scala.messenger.syntax
 
 import cats.effect.Async
-import io.circe.{ Decoder, Encoder, HCursor }
 import io.circe.parser.decode
+import io.circe.{ Decoder, Encoder, HCursor }
 import org.http4s.circe.{ jsonEncoderOf, jsonOf }
 import org.http4s.{ EntityDecoder, EntityEncoder }
 
 trait CirceSyntax {
-  implicit class CirceDecoderOps(s: String) {
-    def as[A: Decoder]: A = decode[A](s).fold(throw _, json => json)
-  }
+  implicit def circeSyntaxDecoderOps(s: String): DecoderOps = new DecoderOps(s)
 
   implicit def deriveEntityEncoder[F[_]: Async, A: Encoder]: EntityEncoder[F, A] =
     jsonEncoderOf[F, A]
@@ -21,4 +19,8 @@ trait CirceSyntax {
 
   implicit def mapDecoder[K: Decoder, V: Decoder]: Decoder[Map[K, V]] =
     (c: HCursor) => c.as[List[(K, V)]].map(_.toMap)
+}
+
+final class DecoderOps(private val s: String) {
+  def as[A: Decoder]: A = decode[A](s).fold(throw _, json => json)
 }
